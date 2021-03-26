@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/chehsunliu/tshakutshai/pkg/quote"
 )
 
 var site = url.URL{Scheme: "https", Host: "www.twse.com.tw"}
@@ -34,12 +36,12 @@ func (c *Client) get(u url.URL) (map[string]json.RawMessage, error) {
 	}
 	defer resp.Body.Close()
 
-	data := map[string]json.RawMessage{}
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+	rawData := map[string]json.RawMessage{}
+	if err := json.NewDecoder(resp.Body).Decode(&rawData); err != nil {
 		return nil, fmt.Errorf("failed to decode response body: %w", err)
 	}
 
-	return data, nil
+	return rawData, nil
 }
 
 func (c *Client) getRawQuotesOfDay(date time.Time) (map[string]json.RawMessage, error) {
@@ -95,4 +97,26 @@ func (c *Client) getRawYearlyQuotes(code string) (map[string]json.RawMessage, er
 	u.RawQuery = rawQuery.Encode()
 
 	return c.get(u)
+}
+
+func (c *Client) GetQuotesOfDay(date time.Time) ([]quote.Quote, error) {
+	rawData, err := c.getRawQuotesOfDay(date)
+	if err != nil {
+		return nil, err
+	}
+
+	fields, err := retrieveFields(rawData, "fields9")
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := retrieveItems(rawData, "data9")
+	if err != nil {
+		return nil, err
+	}
+
+	rawItems := zipFieldsAndItems(fields, items)
+	fmt.Println(rawItems[0])
+
+	return nil, nil
 }

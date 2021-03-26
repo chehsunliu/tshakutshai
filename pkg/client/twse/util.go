@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-func retrieveFields(raw map[string]json.RawMessage, key string) ([]string, error) {
-	rawFields, ok := raw[key]
+func retrieveFields(rawData map[string]json.RawMessage, key string) ([]string, error) {
+	rawFields, ok := rawData[key]
 	if !ok {
 		return nil, fmt.Errorf("key '%s' does not exist", key)
 	}
@@ -19,8 +19,8 @@ func retrieveFields(raw map[string]json.RawMessage, key string) ([]string, error
 	return fields, nil
 }
 
-func retrieveItems(raw map[string]json.RawMessage, key string) ([][]interface{}, error) {
-	rawItems, ok := raw[key]
+func retrieveItems(rawData map[string]json.RawMessage, key string) ([][]interface{}, error) {
+	rawItems, ok := rawData[key]
 	if !ok {
 		return nil, fmt.Errorf("key '%s' does not exist", key)
 	}
