@@ -42,7 +42,7 @@ func (c *Client) get(u url.URL) (map[string]json.RawMessage, error) {
 	return data, nil
 }
 
-func (c *Client) rawQuotes(date time.Time) (map[string]json.RawMessage, error) {
+func (c *Client) getRawQuotesOfDay(date time.Time) (map[string]json.RawMessage, error) {
 	rawQuery := url.Values{}
 	rawQuery.Set("response", "json")
 	rawQuery.Set("date", date.Format("20060102"))
@@ -55,7 +55,7 @@ func (c *Client) rawQuotes(date time.Time) (map[string]json.RawMessage, error) {
 	return c.get(u)
 }
 
-func (c *Client) rawDailyQuotes(code string, year int, month time.Month) (map[string]json.RawMessage, error) {
+func (c *Client) getRawDailyQuotes(code string, year int, month time.Month) (map[string]json.RawMessage, error) {
 	date := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 
 	rawQuery := url.Values{}
@@ -70,7 +70,7 @@ func (c *Client) rawDailyQuotes(code string, year int, month time.Month) (map[st
 	return c.get(u)
 }
 
-func (c *Client) rawMonthlyQuotes(code string, year int) (map[string]json.RawMessage, error) {
+func (c *Client) getRawMonthlyQuotes(code string, year int) (map[string]json.RawMessage, error) {
 	date := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 	rawQuery := url.Values{}
@@ -85,7 +85,7 @@ func (c *Client) rawMonthlyQuotes(code string, year int) (map[string]json.RawMes
 	return c.get(u)
 }
 
-func (c *Client) rawYearlyQuotes(code string) (map[string]json.RawMessage, error) {
+func (c *Client) getRawYearlyQuotes(code string) (map[string]json.RawMessage, error) {
 	rawQuery := url.Values{}
 	rawQuery.Set("response", "json")
 	rawQuery.Set("stockNo", code)
