@@ -60,6 +60,9 @@ func suffixDuplicateFields(fields []string) []string {
 }
 
 func zipFieldsAndItems(fields []string, items [][]interface{}) ([]map[string]interface{}, error) {
+	// The TWSE uses the same field name to denote the days of the highest and
+	// the lowest prices in yearly quotes. Here I just made the second appearance
+	// to be 'name2', the third one to be 'name3' and so on.
 	fields = suffixDuplicateFields(fields)
 	rawRecords := make([]map[string]interface{}, len(items))
 
@@ -120,6 +123,7 @@ func convertToFloat64(rawQuote map[string]interface{}, field string) (float64, e
 		return 0, err
 	}
 
+	// If a stock have no transactions made, its 4 prices will be '--'.
 	if s == "--" {
 		return 0, nil
 	}
