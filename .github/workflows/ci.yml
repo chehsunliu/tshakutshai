@@ -26,7 +26,7 @@ jobs:
 
       - name: Fail if code is not formatted
         run: |
-          if [ "$(go fmt ./... | wc -l)" -gt 0]; then
+          if [ "$(go fmt ./... | wc -l)" -gt 0 ]; then
             >&2 echo "Code is not formatted."
             exit 1
           fi
