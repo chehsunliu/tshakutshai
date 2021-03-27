@@ -43,7 +43,7 @@ func NewResponseFromFile(filepath string, statusCode int) *http.Response {
 func TestClient_FetchDayQuotes(t *testing.T) {
 	date := time.Date(2021, 3, 24, 0, 0, 0, 0, time.UTC)
 
-	mockResponse := NewResponseFromFile("./testdata/quotes-20210324.json.gz", 200)
+	mockResponse := NewResponseFromFile("./testdata/quotes-tw-20210324.json.gz", 200)
 	mockHttpClient := &MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
@@ -89,7 +89,7 @@ func TestClient_FetchDailyQuotes(t *testing.T) {
 	code := "2330"
 	date := time.Date(2021, 2, 1, 0, 0, 0, 0, time.UTC)
 
-	mockResponse := NewResponseFromFile("./testdata/quotes-202102-2330.json.gz", 200)
+	mockResponse := NewResponseFromFile("./testdata/quotes-tw-202102-2330.json.gz", 200)
 	mockHttpClient := &MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
