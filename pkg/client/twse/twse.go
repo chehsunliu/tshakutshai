@@ -79,9 +79,10 @@ func (c *Client) fetchYearlyQuotes(code string) (map[string]json.RawMessage, err
 	return c.fetch("/exchangeReport/FMNPTK", rawQuery)
 }
 
-type DayQuote struct {
+type Quote struct {
 	Code string
 	Name string
+	Date time.Time
 
 	Volume       uint64
 	Transactions uint64
@@ -93,7 +94,7 @@ type DayQuote struct {
 	Close float64
 }
 
-func convertRawDayQuote(rawDayQuote map[string]interface{}) (*DayQuote, error) {
+func convertRawDayQuote(rawDayQuote map[string]interface{}, date time.Time) (*Quote, error) {
 	code, err := convertToString(rawDayQuote, "證券代號")
 	if err != nil {
 		return nil, err
@@ -139,9 +140,10 @@ func convertRawDayQuote(rawDayQuote map[string]interface{}) (*DayQuote, error) {
 		return nil, err
 	}
 
-	return &DayQuote{
+	return &Quote{
 		Code: code,
 		Name: name,
+		Date: date,
 
 		Volume:       volume,
 		Transactions: transactions,
@@ -154,7 +156,7 @@ func convertRawDayQuote(rawDayQuote map[string]interface{}) (*DayQuote, error) {
 	}, nil
 }
 
-func (c *Client) FetchDayQuotes(date time.Time) (map[string]DayQuote, error) {
+func (c *Client) FetchDayQuotes(date time.Time) (map[string]Quote, error) {
 	rawData, err := c.fetchDayQuotes(date)
 	if err != nil {
 		return nil, err
@@ -175,9 +177,9 @@ func (c *Client) FetchDayQuotes(date time.Time) (map[string]DayQuote, error) {
 		return nil, err
 	}
 
-	qs := map[string]DayQuote{}
+	qs := map[string]Quote{}
 	for _, rawDayQuote := range rawDayQuotes {
-		q, err := convertRawDayQuote(rawDayQuote)
+		q, err := convertRawDayQuote(rawDayQuote, date)
 		if err != nil {
 			return nil, err
 		}

@@ -56,9 +56,10 @@ func TestClient_FetchDayQuotes(t *testing.T) {
 	assert.Nilf(t, err, "%+v", err)
 	assert.Greater(t, len(quotes), 20000)
 
-	assert.Equal(t, DayQuote{
+	assert.Equal(t, Quote{
 		Code:         "0050",
 		Name:         "元大台灣50",
+		Date:         date,
 		Volume:       11_082_813,
 		Transactions: 20_959,
 		Value:        1_459_923_222,
@@ -68,9 +69,10 @@ func TestClient_FetchDayQuotes(t *testing.T) {
 		Close:        131.50,
 	}, quotes["0050"])
 
-	assert.Equal(t, DayQuote{
+	assert.Equal(t, Quote{
 		Code:         "2330",
 		Name:         "台積電",
+		Date:         date,
 		Volume:       115_318_351,
 		Transactions: 242_138,
 		Value:        66_559_451_738,
