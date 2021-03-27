@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path"
 	"time"
-
-	"github.com/chehsunliu/tshakutshai/pkg/quote"
 )
 
 var site = url.URL{Scheme: "https", Host: "www.twse.com.tw"}
@@ -25,9 +22,9 @@ func NewClient() *Client {
 	return &Client{http: &http.Client{}}
 }
 
-func (c *Client) get(p string, rawQuery url.Values) (map[string]json.RawMessage, error) {
+func (c *Client) fetch(p string, rawQuery url.Values) (map[string]json.RawMessage, error) {
 	u := site
-	u.Path = path.Join("en", p)
+	u.Path = p
 	u.RawQuery = rawQuery.Encode()
 
 	req, err := http.NewRequest("GET", u.String(), nil)
@@ -49,41 +46,116 @@ func (c *Client) get(p string, rawQuery url.Values) (map[string]json.RawMessage,
 	return rawData, nil
 }
 
-func (c *Client) getRawQuotesOfDay(date time.Time) (map[string]json.RawMessage, error) {
+func (c *Client) fetchDayQuotes(date time.Time) (map[string]json.RawMessage, error) {
 	rawQuery := url.Values{}
 	rawQuery.Set("response", "json")
 	rawQuery.Set("date", date.Format("20060102"))
 	rawQuery.Set("type", "ALL")
-	return c.get("/exchangeReport/MI_INDEX", rawQuery)
+	return c.fetch("/exchangeReport/MI_INDEX", rawQuery)
 }
 
-func (c *Client) getRawDailyQuotes(code string, year int, month time.Month) (map[string]json.RawMessage, error) {
+func (c *Client) fetchDailyQuotes(code string, year int, month time.Month) (map[string]json.RawMessage, error) {
 	date := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 	rawQuery := url.Values{}
 	rawQuery.Set("response", "json")
 	rawQuery.Set("date", date.Format("20060102"))
 	rawQuery.Set("stockNo", code)
-	return c.get("/exchangeReport/STOCK_DAY", rawQuery)
+	return c.fetch("/exchangeReport/STOCK_DAY", rawQuery)
 }
 
-func (c *Client) getRawMonthlyQuotes(code string, year int) (map[string]json.RawMessage, error) {
+func (c *Client) fetchMonthlyQuotes(code string, year int) (map[string]json.RawMessage, error) {
 	date := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
 	rawQuery := url.Values{}
 	rawQuery.Set("response", "json")
 	rawQuery.Set("date", date.Format("20060102"))
 	rawQuery.Set("stockNo", code)
-	return c.get("/exchangeReport/FMSRFK", rawQuery)
+	return c.fetch("/exchangeReport/FMSRFK", rawQuery)
 }
 
-func (c *Client) getRawYearlyQuotes(code string) (map[string]json.RawMessage, error) {
+func (c *Client) fetchYearlyQuotes(code string) (map[string]json.RawMessage, error) {
 	rawQuery := url.Values{}
 	rawQuery.Set("response", "json")
 	rawQuery.Set("stockNo", code)
-	return c.get("/exchangeReport/FMNPTK", rawQuery)
+	return c.fetch("/exchangeReport/FMNPTK", rawQuery)
 }
 
-func (c *Client) GetQuotesOfDay(date time.Time) ([]quote.Quote, error) {
-	rawData, err := c.getRawQuotesOfDay(date)
+type DayQuote struct {
+	Code string
+	Name string
+
+	Volume       uint64
+	Transactions uint64
+	Value        uint64
+
+	Open  float64
+	High  float64
+	Low   float64
+	Close float64
+}
+
+func convertRawDayQuote(rawDayQuote map[string]interface{}) (*DayQuote, error) {
+	code, err := convertToString(rawDayQuote, "證券代號")
+	if err != nil {
+		return nil, err
+	}
+
+	name, err := convertToString(rawDayQuote, "證券名稱")
+	if err != nil {
+		return nil, err
+	}
+
+	volume, err := convertToUint64(rawDayQuote, "成交股數")
+	if err != nil {
+		return nil, err
+	}
+
+	transactions, err := convertToUint64(rawDayQuote, "成交筆數")
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := convertToUint64(rawDayQuote, "成交金額")
+	if err != nil {
+		return nil, err
+	}
+
+	open, err := convertToFloat64(rawDayQuote, "開盤價")
+	if err != nil {
+		return nil, err
+	}
+
+	high, err := convertToFloat64(rawDayQuote, "最高價")
+	if err != nil {
+		return nil, err
+	}
+
+	low, err := convertToFloat64(rawDayQuote, "最低價")
+	if err != nil {
+		return nil, err
+	}
+
+	klose, err := convertToFloat64(rawDayQuote, "收盤價")
+	if err != nil {
+		return nil, err
+	}
+
+	return &DayQuote{
+		Code: code,
+		Name: name,
+
+		Volume:       volume,
+		Transactions: transactions,
+		Value:        value,
+
+		Open:  open,
+		High:  high,
+		Low:   low,
+		Close: klose,
+	}, nil
+}
+
+func (c *Client) FetchDayQuotes(date time.Time) (map[string]DayQuote, error) {
+	rawData, err := c.fetchDayQuotes(date)
 	if err != nil {
 		return nil, err
 	}
@@ -98,12 +170,20 @@ func (c *Client) GetQuotesOfDay(date time.Time) ([]quote.Quote, error) {
 		return nil, err
 	}
 
-	rawItems, err := zipFieldsAndItems(fields, items)
+	rawDayQuotes, err := zipFieldsAndItems(fields, items)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println(rawItems[0])
+	qs := map[string]DayQuote{}
+	for _, rawDayQuote := range rawDayQuotes {
+		q, err := convertRawDayQuote(rawDayQuote)
+		if err != nil {
+			return nil, err
+		}
 
-	return nil, nil
+		qs[q.Code] = *q
+	}
+
+	return qs, nil
 }

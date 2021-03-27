@@ -40,19 +40,45 @@ func NewResponseFromFile(filepath string, statusCode int) *http.Response {
 	return &http.Response{Body: reader, StatusCode: statusCode}
 }
 
-func TestClient_GetQuotesOfDay(t *testing.T) {
-	date := time.Date(2021, 3, 25, 0, 0, 0, 0, time.UTC)
+func TestClient_FetchDayQuotes(t *testing.T) {
+	date := time.Date(2021, 3, 24, 0, 0, 0, 0, time.UTC)
 
-	mockResponse := NewResponseFromFile("./testdata/quotes-en-20210325.json.gz", 200)
+	mockResponse := NewResponseFromFile("./testdata/quotes-20210324.json.gz", 200)
 	mockHttpClient := &MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
-		return u.Path == "/en/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210325"
+		return u.Path == "/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210324"
 	})).Return(mockResponse, nil)
 
 	client := &Client{http: mockHttpClient}
-	_, err := client.GetQuotesOfDay(date)
+	quotes, err := client.FetchDayQuotes(date)
 
-	assert.Nil(t, err)
+	assert.Nilf(t, err, "%+v", err)
+	assert.Greater(t, len(quotes), 20000)
+
+	assert.Equal(t, DayQuote{
+		Code:         "0050",
+		Name:         "元大台灣50",
+		Volume:       11_082_813,
+		Transactions: 20_959,
+		Value:        1_459_923_222,
+		Open:         131.80,
+		High:         132.45,
+		Low:          131.30,
+		Close:        131.50,
+	}, quotes["0050"])
+
+	assert.Equal(t, DayQuote{
+		Code:         "2330",
+		Name:         "台積電",
+		Volume:       115_318_351,
+		Transactions: 242_138,
+		Value:        66_559_451_738,
+		Open:         571.00,
+		High:         582.00,
+		Low:          571.00,
+		Close:        576.00,
+	}, quotes["2330"])
+
 	mockHttpClient.AssertNumberOfCalls(t, "Do", 1)
 }
