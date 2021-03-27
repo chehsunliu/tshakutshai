@@ -33,10 +33,16 @@ func retrieveItems(rawData map[string]json.RawMessage, key string) ([][]interfac
 	return items, nil
 }
 
-func zipFieldsAndItems(fields []string, items [][]interface{}) []map[string]interface{} {
+func zipFieldsAndItems(fields []string, items [][]interface{}) ([]map[string]interface{}, error) {
 	rawRecords := make([]map[string]interface{}, len(items))
 
 	for i := range rawRecords {
+		if len(fields) != len(items[i]) {
+			return nil, fmt.Errorf(
+				"fields %v has %d elements but item %v has only %d",
+				fields, len(fields), items[i], len(items[i]),
+			)
+		}
 
 		rawRecord := map[string]interface{}{}
 		for j := range fields {
@@ -50,5 +56,5 @@ func zipFieldsAndItems(fields []string, items [][]interface{}) []map[string]inte
 		rawRecords[i] = rawRecord
 	}
 
-	return rawRecords
+	return rawRecords, nil
 }

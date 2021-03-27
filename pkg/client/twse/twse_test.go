@@ -40,12 +40,15 @@ func NewResponseFromFile(filepath string, statusCode int) *http.Response {
 	return &http.Response{Body: reader, StatusCode: statusCode}
 }
 
-func TestGetQuotesOfDay(t *testing.T) {
-	date := time.Date(2021, 3, 24, 0, 0, 0, 0, time.UTC)
+func TestClient_GetQuotesOfDay(t *testing.T) {
+	date := time.Date(2021, 3, 25, 0, 0, 0, 0, time.UTC)
 
-	mockResponse := NewResponseFromFile("./testdata/quotes-20210324.json.gz", 200)
+	mockResponse := NewResponseFromFile("./testdata/quotes-en-20210325.json.gz", 200)
 	mockHttpClient := &MockHttpClient{}
-	mockHttpClient.On("Do", mock.Anything).Return(mockResponse, nil)
+	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
+		u := req.URL
+		return u.Path == "/en/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210325"
+	})).Return(mockResponse, nil)
 
 	client := &Client{http: mockHttpClient}
 	_, err := client.GetQuotesOfDay(date)
