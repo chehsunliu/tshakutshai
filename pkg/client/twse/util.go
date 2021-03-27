@@ -101,14 +101,9 @@ func convertToString(rawQuote map[string]interface{}, field string) (string, err
 }
 
 func convertToUint64(rawQuote map[string]interface{}, field string) (uint64, error) {
-	i, ok := rawQuote[field]
-	if !ok {
-		return 0, fmt.Errorf("field '%s' does not exist in %v", field, rawQuote)
-	}
-
-	s, ok := i.(string)
-	if !ok {
-		return 0, fmt.Errorf("value %v of field '%s' in %v is not string", i, field, rawQuote)
+	s, err := convertToString(rawQuote, field)
+	if err != nil {
+		return 0, err
 	}
 
 	v, err := strconv.ParseUint(strings.Replace(s, ",", "", -1), 10, 64)
@@ -120,14 +115,9 @@ func convertToUint64(rawQuote map[string]interface{}, field string) (uint64, err
 }
 
 func convertToFloat64(rawQuote map[string]interface{}, field string) (float64, error) {
-	i, ok := rawQuote[field]
-	if !ok {
-		return 0, fmt.Errorf("field '%s' does not exist in %v", field, rawQuote)
-	}
-
-	s, ok := i.(string)
-	if !ok {
-		return 0, fmt.Errorf("value %v of field '%s' in %v is not string", i, field, rawQuote)
+	s, err := convertToString(rawQuote, field)
+	if err != nil {
+		return 0, err
 	}
 
 	if s == "--" {

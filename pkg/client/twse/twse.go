@@ -5,8 +5,25 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 )
+
+type Quote struct {
+	Code string
+	Name string
+	Date time.Time
+
+	Volume       uint64
+	Transactions uint64
+	Value        uint64
+
+	Open  float64
+	High  float64
+	Low   float64
+	Close float64
+}
 
 var site = url.URL{Scheme: "https", Host: "www.twse.com.tw"}
 
@@ -79,32 +96,7 @@ func (c *Client) fetchYearlyQuotes(code string) (map[string]json.RawMessage, err
 	return c.fetch("/exchangeReport/FMNPTK", rawQuery)
 }
 
-type Quote struct {
-	Code string
-	Name string
-	Date time.Time
-
-	Volume       uint64
-	Transactions uint64
-	Value        uint64
-
-	Open  float64
-	High  float64
-	Low   float64
-	Close float64
-}
-
-func convertRawDayQuote(rawDayQuote map[string]interface{}, date time.Time) (*Quote, error) {
-	code, err := convertToString(rawDayQuote, "證券代號")
-	if err != nil {
-		return nil, err
-	}
-
-	name, err := convertToString(rawDayQuote, "證券名稱")
-	if err != nil {
-		return nil, err
-	}
-
+func convertRawQuote(rawDayQuote map[string]interface{}) (*Quote, error) {
 	volume, err := convertToUint64(rawDayQuote, "成交股數")
 	if err != nil {
 		return nil, err
@@ -141,10 +133,6 @@ func convertRawDayQuote(rawDayQuote map[string]interface{}, date time.Time) (*Qu
 	}
 
 	return &Quote{
-		Code: code,
-		Name: name,
-		Date: date,
-
 		Volume:       volume,
 		Transactions: transactions,
 		Value:        value,
@@ -154,6 +142,54 @@ func convertRawDayQuote(rawDayQuote map[string]interface{}, date time.Time) (*Qu
 		Low:   low,
 		Close: klose,
 	}, nil
+}
+
+func convertRawDayQuote(rawDayQuote map[string]interface{}, date time.Time) (*Quote, error) {
+	code, err := convertToString(rawDayQuote, "證券代號")
+	if err != nil {
+		return nil, err
+	}
+
+	name, err := convertToString(rawDayQuote, "證券名稱")
+	if err != nil {
+		return nil, err
+	}
+
+	q, err := convertRawQuote(rawDayQuote)
+	if err != nil {
+		return nil, err
+	}
+
+	q.Code = code
+	q.Name = name
+	q.Date = date
+	return q, nil
+}
+
+func convertRawDailyQuote(rawDailyQuote map[string]interface{}, code string, year int, month time.Month) (*Quote, error) {
+	q, err := convertRawQuote(rawDailyQuote)
+	if err != nil {
+		return nil, err
+	}
+
+	rawDate, err := convertToString(rawDailyQuote, "日期")
+	if err != nil {
+		return nil, err
+	}
+
+	splitRawDate := strings.Split(rawDate, "/")
+	if len(splitRawDate) != 3 {
+		return nil, fmt.Errorf("'%s' of %v is ill-formatted", rawDate, rawDailyQuote)
+	}
+
+	day, err := strconv.ParseInt(splitRawDate[2], 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("ill-formatted date '%s' in %v", rawDate, rawDailyQuote)
+	}
+
+	q.Code = code
+	q.Date = time.Date(year, month, int(day), 0, 0, 0, 0, time.UTC)
+	return q, nil
 }
 
 func (c *Client) FetchDayQuotes(date time.Time) (map[string]Quote, error) {
@@ -185,6 +221,40 @@ func (c *Client) FetchDayQuotes(date time.Time) (map[string]Quote, error) {
 		}
 
 		qs[q.Code] = *q
+	}
+
+	return qs, nil
+}
+
+func (c *Client) FetchDailyQuotes(code string, year int, month time.Month) ([]Quote, error) {
+	rawData, err := c.fetchDailyQuotes(code, year, month)
+	if err != nil {
+		return nil, err
+	}
+
+	fields, err := retrieveFields(rawData, "fields")
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := retrieveItems(rawData, "data")
+	if err != nil {
+		return nil, err
+	}
+
+	rawDailyQuotes, err := zipFieldsAndItems(fields, items)
+	if err != nil {
+		return nil, err
+	}
+
+	qs := make([]Quote, 0)
+	for _, rawDailyQuote := range rawDailyQuotes {
+		q, err := convertRawDailyQuote(rawDailyQuote, code, year, month)
+		if err != nil {
+			return nil, err
+		}
+
+		qs = append(qs, *q)
 	}
 
 	return qs, nil

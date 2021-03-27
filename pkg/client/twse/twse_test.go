@@ -84,3 +84,38 @@ func TestClient_FetchDayQuotes(t *testing.T) {
 
 	mockHttpClient.AssertNumberOfCalls(t, "Do", 1)
 }
+
+func TestClient_FetchDailyQuotes(t *testing.T) {
+	code := "2330"
+	date := time.Date(2021, 2, 1, 0, 0, 0, 0, time.UTC)
+
+	mockResponse := NewResponseFromFile("./testdata/quotes-202102-2330.json.gz", 200)
+	mockHttpClient := &MockHttpClient{}
+	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
+		u := req.URL
+		return u.Path == "/exchangeReport/STOCK_DAY" &&
+			u.Query().Get("date") == "20210201" &&
+			u.Query().Get("stockNo") == code
+	})).Return(mockResponse, nil)
+
+	client := &Client{http: mockHttpClient}
+	quotes, err := client.FetchDailyQuotes(code, 2021, time.February)
+
+	assert.Nilf(t, err, "%+v", err)
+	assert.Greater(t, len(quotes), 10)
+
+	assert.Equal(t, Quote{
+		Code:         "2330",
+		Name:         "",
+		Date:         date,
+		Volume:       70_161_939,
+		Transactions: 81_346,
+		Value:        42_004_241_697,
+		Open:         595.00,
+		High:         612.00,
+		Low:          587.00,
+		Close:        611.00,
+	}, quotes[0])
+
+	mockHttpClient.AssertNumberOfCalls(t, "Do", 1)
+}
