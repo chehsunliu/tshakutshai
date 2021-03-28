@@ -228,3 +228,18 @@ func TestClient_FetchDayQuotesTooFrequently(t *testing.T) {
 
 	assert.ErrorIs(t, err, ErrQuotaExceeded)
 }
+
+func TestClient_FetchDayQuotesTooFrequentlyCausingEmptyReply(t *testing.T) {
+	date := time.Date(2021, 3, 28, 0, 0, 0, 0, time.UTC)
+
+	mockHttpClient := &MockHttpClient{}
+	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
+		u := req.URL
+		return u.Path == "/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210328"
+	})).Return(nil, io.EOF)
+
+	client := &Client{http: mockHttpClient}
+	_, err := client.FetchDayQuotes(date)
+
+	assert.ErrorIs(t, err, ErrQuotaExceeded)
+}
