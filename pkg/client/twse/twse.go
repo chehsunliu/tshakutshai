@@ -38,6 +38,20 @@ type MonthlyQuote struct {
 	Low  float64
 }
 
+type YearlyQuote struct {
+	Code string
+	Year int
+
+	Volume       uint64
+	Transactions uint64
+	Value        uint64
+
+	High       float64
+	Low        float64
+	DateOfHigh time.Time
+	DateOfLow  time.Time
+}
+
 var site = url.URL{Scheme: "https", Host: "www.twse.com.tw"}
 
 type httpClient interface {
@@ -255,6 +269,73 @@ func convertRawMonthlyQuote(rawMonthlyQuote map[string]interface{}, code string,
 	}, nil
 }
 
+func convertRawYearlyQuote(rawYearlyQuote map[string]interface{}, code string) (*YearlyQuote, error) {
+	rawYear, err := convertToFloat64(rawYearlyQuote, "年度")
+	if err != nil {
+		return nil, err
+	}
+	year := 1911 + int(rawYear)
+
+	transactions, err := convertToStringThenUint64(rawYearlyQuote, "成交筆數")
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := convertToStringThenUint64(rawYearlyQuote, "成交金額")
+	if err != nil {
+		return nil, err
+	}
+
+	volume, err := convertToStringThenUint64(rawYearlyQuote, "成交股數")
+	if err != nil {
+		return nil, err
+	}
+
+	high, err := convertToStringThenFloat64(rawYearlyQuote, "最高價")
+	if err != nil {
+		return nil, err
+	}
+
+	low, err := convertToStringThenFloat64(rawYearlyQuote, "最低價")
+	if err != nil {
+		return nil, err
+	}
+
+	rawDateOfHigh, err := convertToString(rawYearlyQuote, "日期")
+	if err != nil {
+		return nil, err
+	}
+
+	dateOfHigh, err := time.Parse("2006/1/02", fmt.Sprintf("%d/%s", year, rawDateOfHigh))
+	if err != nil {
+		return nil, fmt.Errorf("%s is not a legal month/day: %w", rawDateOfHigh, err)
+	}
+
+	rawDateOfLow, err := convertToString(rawYearlyQuote, "日期2")
+	if err != nil {
+		return nil, err
+	}
+
+	dateOfLow, err := time.Parse("2006/1/02", fmt.Sprintf("%d/%s", year, rawDateOfLow))
+	if err != nil {
+		return nil, fmt.Errorf("%s is not a legal month/day: %w", rawDateOfLow, err)
+	}
+
+	return &YearlyQuote{
+		Code: code,
+		Year: year,
+
+		Volume:       volume,
+		Transactions: transactions,
+		Value:        value,
+
+		High:       high,
+		Low:        low,
+		DateOfHigh: dateOfHigh,
+		DateOfLow:  dateOfLow,
+	}, nil
+}
+
 func (c *Client) FetchDayQuotes(date time.Time) (map[string]Quote, error) {
 	rawData, err := c.fetchDayQuotes(date)
 	if err != nil {
@@ -347,6 +428,40 @@ func (c *Client) FetchMonthlyQuotes(code string, year int) ([]MonthlyQuote, erro
 	qs := make([]MonthlyQuote, 0)
 	for _, rawMonthlyQuote := range rawMonthlyQuotes {
 		q, err := convertRawMonthlyQuote(rawMonthlyQuote, code, year)
+		if err != nil {
+			return nil, err
+		}
+
+		qs = append(qs, *q)
+	}
+
+	return qs, nil
+}
+
+func (c *Client) FetchYearlyQuotes(code string) ([]YearlyQuote, error) {
+	rawData, err := c.fetchYearlyQuotes(code)
+	if err != nil {
+		return nil, err
+	}
+
+	fields, err := retrieveFields(rawData, "fields")
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := retrieveItems(rawData, "data")
+	if err != nil {
+		return nil, err
+	}
+
+	rawYearlyQuotes, err := zipFieldsAndItems(fields, items)
+	if err != nil {
+		return nil, err
+	}
+
+	qs := make([]YearlyQuote, 0)
+	for _, rawYearlyQuote := range rawYearlyQuotes {
+		q, err := convertRawYearlyQuote(rawYearlyQuote, code)
 		if err != nil {
 			return nil, err
 		}
