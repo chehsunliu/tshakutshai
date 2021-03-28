@@ -3,6 +3,7 @@ package twse
 import (
 	"encoding/json"
 	"fmt"
+	"mime"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -82,9 +83,20 @@ func (c *Client) fetch(p string, rawQuery url.Values) (map[string]json.RawMessag
 	}
 	defer resp.Body.Close()
 
+	contentType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if err == nil && contentType == "text/html" {
+		return nil, ErrQuotaExceeded
+	}
+
 	rawData := map[string]json.RawMessage{}
 	if err := json.NewDecoder(resp.Body).Decode(&rawData); err != nil {
 		return nil, fmt.Errorf("failed to decode response body: %w", err)
+	}
+
+	if ok, err := isStatOK(rawData); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, ErrNoData
 	}
 
 	return rawData, nil

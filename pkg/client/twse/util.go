@@ -8,6 +8,20 @@ import (
 	"strings"
 )
 
+func isStatOK(rawData map[string]json.RawMessage) (bool, error) {
+	rawStat, ok := rawData["stat"]
+	if !ok {
+		return false, fmt.Errorf("key 'stat' does not exist")
+	}
+
+	var stat string
+	if err := json.Unmarshal(rawStat, &stat); err != nil {
+		return false, fmt.Errorf("failed to unmarshal: %w", err)
+	}
+
+	return stat == "OK", nil
+}
+
 func retrieveFields(rawData map[string]json.RawMessage, key string) ([]string, error) {
 	rawFields, ok := rawData[key]
 	if !ok {
