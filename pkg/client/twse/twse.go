@@ -2,7 +2,9 @@ package twse
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"mime"
 	"net/http"
 	"net/url"
@@ -79,6 +81,9 @@ func (c *Client) fetch(p string, rawQuery url.Values) (map[string]json.RawMessag
 
 	resp, err := c.http.Do(req)
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil, ErrQuotaExceeded
+		}
 		return nil, fmt.Errorf("failed to query '%s': %w", u.String(), err)
 	}
 	defer resp.Body.Close()
