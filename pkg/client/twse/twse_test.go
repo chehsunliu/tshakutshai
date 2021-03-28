@@ -3,14 +3,20 @@ package twse
 import (
 	"compress/gzip"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+func TestNewClient(t *testing.T) {
+	assert.NotNil(t, NewClient())
+}
 
 type MockHttpClient struct {
 	mock.Mock
@@ -38,6 +44,10 @@ func NewResponseFromFile(filepath string, statusCode int) *http.Response {
 	}
 
 	return &http.Response{Body: reader, StatusCode: statusCode}
+}
+
+func NewResponseFromString(content string, statusCode int) *http.Response {
+	return &http.Response{Body: io.NopCloser(strings.NewReader(content)), StatusCode: statusCode}
 }
 
 func TestClient_FetchDayQuotes(t *testing.T) {
@@ -182,4 +192,39 @@ func TestClient_FetchYearlyQuotes(t *testing.T) {
 	}, qs[17])
 
 	mockHttpClient.AssertNumberOfCalls(t, "Do", 1)
+}
+
+func TestClient_FetchDayQuotesOnWeekend(t *testing.T) {
+	date := time.Date(2021, 3, 28, 0, 0, 0, 0, time.UTC)
+
+	mockResponse := NewResponseFromString(`{"stat":"很抱歉，沒有符合條件的資料!"}`, 200)
+	mockHttpClient := &MockHttpClient{}
+	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
+		u := req.URL
+		return u.Path == "/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210328"
+	})).Return(mockResponse, nil)
+
+	client := &Client{http: mockHttpClient}
+	_, err := client.FetchDayQuotes(date)
+
+	assert.ErrorIs(t, err, ErrNoData)
+}
+
+func TestClient_FetchDayQuotesTooFrequently(t *testing.T) {
+	date := time.Date(2021, 3, 28, 0, 0, 0, 0, time.UTC)
+
+	mockResponseHeader := http.Header{}
+	mockResponseHeader.Set("content-type", "text/html; charset=utf-8")
+	mockResponse := NewResponseFromFile("./testdata/quotes-tw-banned.html.gz", 200)
+	mockResponse.Header = mockResponseHeader
+	mockHttpClient := &MockHttpClient{}
+	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
+		u := req.URL
+		return u.Path == "/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210328"
+	})).Return(mockResponse, nil)
+
+	client := &Client{http: mockHttpClient}
+	_, err := client.FetchDayQuotes(date)
+
+	assert.ErrorIs(t, err, ErrQuotaExceeded)
 }
