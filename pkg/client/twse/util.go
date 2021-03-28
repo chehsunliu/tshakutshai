@@ -3,6 +3,7 @@ package twse
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -103,7 +104,22 @@ func convertToString(rawQuote map[string]interface{}, field string) (string, err
 	return s, nil
 }
 
-func convertToUint64(rawQuote map[string]interface{}, field string) (uint64, error) {
+func convertToFloat64(rawQuote map[string]interface{}, field string) (float64, error) {
+	i, ok := rawQuote[field]
+	if !ok {
+		return 0, fmt.Errorf("field '%s' does not exist in %v", field, rawQuote)
+	}
+
+	f, ok := i.(float64)
+	if !ok {
+		return 0, fmt.Errorf(
+			"value %v of field '%s' in %v is not int but %s", i, field, rawQuote, reflect.TypeOf(i))
+	}
+
+	return f, nil
+}
+
+func convertToStringThenUint64(rawQuote map[string]interface{}, field string) (uint64, error) {
 	s, err := convertToString(rawQuote, field)
 	if err != nil {
 		return 0, err
@@ -117,7 +133,7 @@ func convertToUint64(rawQuote map[string]interface{}, field string) (uint64, err
 	return v, nil
 }
 
-func convertToFloat64(rawQuote map[string]interface{}, field string) (float64, error) {
+func convertToStringThenFloat64(rawQuote map[string]interface{}, field string) (float64, error) {
 	s, err := convertToString(rawQuote, field)
 	if err != nil {
 		return 0, err
