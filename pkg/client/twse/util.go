@@ -3,6 +3,7 @@ package twse
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -60,6 +61,9 @@ func suffixDuplicateFields(fields []string) []string {
 }
 
 func zipFieldsAndItems(fields []string, items [][]interface{}) ([]map[string]interface{}, error) {
+	// The TWSE uses the same field name to denote the days of the highest and
+	// the lowest prices in yearly quotes. Here I just made the second appearance
+	// to be 'name2', the third one to be 'name3' and so on.
 	fields = suffixDuplicateFields(fields)
 	rawRecords := make([]map[string]interface{}, len(items))
 
@@ -100,7 +104,22 @@ func convertToString(rawQuote map[string]interface{}, field string) (string, err
 	return s, nil
 }
 
-func convertToUint64(rawQuote map[string]interface{}, field string) (uint64, error) {
+func convertToFloat64(rawQuote map[string]interface{}, field string) (float64, error) {
+	i, ok := rawQuote[field]
+	if !ok {
+		return 0, fmt.Errorf("field '%s' does not exist in %v", field, rawQuote)
+	}
+
+	f, ok := i.(float64)
+	if !ok {
+		return 0, fmt.Errorf(
+			"value %v of field '%s' in %v is not int but %s", i, field, rawQuote, reflect.TypeOf(i))
+	}
+
+	return f, nil
+}
+
+func convertToStringThenUint64(rawQuote map[string]interface{}, field string) (uint64, error) {
 	s, err := convertToString(rawQuote, field)
 	if err != nil {
 		return 0, err
@@ -114,12 +133,13 @@ func convertToUint64(rawQuote map[string]interface{}, field string) (uint64, err
 	return v, nil
 }
 
-func convertToFloat64(rawQuote map[string]interface{}, field string) (float64, error) {
+func convertToStringThenFloat64(rawQuote map[string]interface{}, field string) (float64, error) {
 	s, err := convertToString(rawQuote, field)
 	if err != nil {
 		return 0, err
 	}
 
+	// If a stock have no transactions made, its 4 prices will be '--'.
 	if s == "--" {
 		return 0, nil
 	}

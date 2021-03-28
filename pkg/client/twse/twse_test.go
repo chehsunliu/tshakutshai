@@ -99,7 +99,7 @@ func TestClient_FetchDailyQuotes(t *testing.T) {
 	})).Return(mockResponse, nil)
 
 	client := &Client{http: mockHttpClient}
-	quotes, err := client.FetchDailyQuotes(code, 2021, time.February)
+	quotes, err := client.FetchDailyQuotes(code, date.Year(), date.Month())
 
 	assert.Nilf(t, err, "%+v", err)
 	assert.Greater(t, len(quotes), 10)
@@ -116,6 +116,39 @@ func TestClient_FetchDailyQuotes(t *testing.T) {
 		Low:          587.00,
 		Close:        611.00,
 	}, quotes[0])
+
+	mockHttpClient.AssertNumberOfCalls(t, "Do", 1)
+}
+
+func TestClient_FetchMonthlyQuotes(t *testing.T) {
+	code := "2454"
+	year := 2020
+
+	mockResponse := NewResponseFromFile("./testdata/quotes-tw-2020-2454.json.gz", 200)
+	mockHttpClient := &MockHttpClient{}
+	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
+		u := req.URL
+		return u.Path == "/exchangeReport/FMSRFK" &&
+			u.Query().Get("date") == "20200101" &&
+			u.Query().Get("stockNo") == code
+	})).Return(mockResponse, nil)
+
+	client := &Client{http: mockHttpClient}
+	qs, err := client.FetchMonthlyQuotes(code, year)
+
+	assert.Nilf(t, err, "%+v", err)
+	assert.Equal(t, 12, len(qs))
+
+	assert.Equal(t, MonthlyQuote{
+		Code:         code,
+		Year:         year,
+		Month:        time.April,
+		Volume:       218_553_058,
+		Transactions: 146_711,
+		Value:        80_262_421_295,
+		High:         415.50,
+		Low:          325.50,
+	}, qs[3])
 
 	mockHttpClient.AssertNumberOfCalls(t, "Do", 1)
 }

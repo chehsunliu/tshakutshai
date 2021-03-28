@@ -25,6 +25,19 @@ type Quote struct {
 	Close float64
 }
 
+type MonthlyQuote struct {
+	Code  string
+	Year  int
+	Month time.Month
+
+	Volume       uint64
+	Transactions uint64
+	Value        uint64
+
+	High float64
+	Low  float64
+}
+
 var site = url.URL{Scheme: "https", Host: "www.twse.com.tw"}
 
 type httpClient interface {
@@ -97,37 +110,37 @@ func (c *Client) fetchYearlyQuotes(code string) (map[string]json.RawMessage, err
 }
 
 func convertRawQuote(rawDayQuote map[string]interface{}) (*Quote, error) {
-	volume, err := convertToUint64(rawDayQuote, "成交股數")
+	volume, err := convertToStringThenUint64(rawDayQuote, "成交股數")
 	if err != nil {
 		return nil, err
 	}
 
-	transactions, err := convertToUint64(rawDayQuote, "成交筆數")
+	transactions, err := convertToStringThenUint64(rawDayQuote, "成交筆數")
 	if err != nil {
 		return nil, err
 	}
 
-	value, err := convertToUint64(rawDayQuote, "成交金額")
+	value, err := convertToStringThenUint64(rawDayQuote, "成交金額")
 	if err != nil {
 		return nil, err
 	}
 
-	open, err := convertToFloat64(rawDayQuote, "開盤價")
+	open, err := convertToStringThenFloat64(rawDayQuote, "開盤價")
 	if err != nil {
 		return nil, err
 	}
 
-	high, err := convertToFloat64(rawDayQuote, "最高價")
+	high, err := convertToStringThenFloat64(rawDayQuote, "最高價")
 	if err != nil {
 		return nil, err
 	}
 
-	low, err := convertToFloat64(rawDayQuote, "最低價")
+	low, err := convertToStringThenFloat64(rawDayQuote, "最低價")
 	if err != nil {
 		return nil, err
 	}
 
-	klose, err := convertToFloat64(rawDayQuote, "收盤價")
+	klose, err := convertToStringThenFloat64(rawDayQuote, "收盤價")
 	if err != nil {
 		return nil, err
 	}
@@ -192,6 +205,56 @@ func convertRawDailyQuote(rawDailyQuote map[string]interface{}, code string, yea
 	return q, nil
 }
 
+func convertRawMonthlyQuote(rawMonthlyQuote map[string]interface{}, code string, year int) (*MonthlyQuote, error) {
+	rawMonth, err := convertToFloat64(rawMonthlyQuote, "月份")
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := time.Parse("01", fmt.Sprintf("%02d", int(rawMonth)))
+	if err != nil {
+		return nil, fmt.Errorf("%f is not a legal month: %w", rawMonth, err)
+	}
+
+	high, err := convertToStringThenFloat64(rawMonthlyQuote, "最高價")
+	if err != nil {
+		return nil, err
+	}
+
+	low, err := convertToStringThenFloat64(rawMonthlyQuote, "最低價")
+	if err != nil {
+		return nil, err
+	}
+
+	transactions, err := convertToStringThenUint64(rawMonthlyQuote, "成交筆數")
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := convertToStringThenUint64(rawMonthlyQuote, "成交金額(A)")
+	if err != nil {
+		return nil, err
+	}
+
+	volume, err := convertToStringThenUint64(rawMonthlyQuote, "成交股數(B)")
+	if err != nil {
+		return nil, err
+	}
+
+	return &MonthlyQuote{
+		Code:  code,
+		Year:  year,
+		Month: t.Month(),
+
+		Volume:       volume,
+		Transactions: transactions,
+		Value:        value,
+
+		High: high,
+		Low:  low,
+	}, nil
+}
+
 func (c *Client) FetchDayQuotes(date time.Time) (map[string]Quote, error) {
 	rawData, err := c.fetchDayQuotes(date)
 	if err != nil {
@@ -250,6 +313,40 @@ func (c *Client) FetchDailyQuotes(code string, year int, month time.Month) ([]Qu
 	qs := make([]Quote, 0)
 	for _, rawDailyQuote := range rawDailyQuotes {
 		q, err := convertRawDailyQuote(rawDailyQuote, code, year, month)
+		if err != nil {
+			return nil, err
+		}
+
+		qs = append(qs, *q)
+	}
+
+	return qs, nil
+}
+
+func (c *Client) FetchMonthlyQuotes(code string, year int) ([]MonthlyQuote, error) {
+	rawData, err := c.fetchMonthlyQuotes(code, year)
+	if err != nil {
+		return nil, err
+	}
+
+	fields, err := retrieveFields(rawData, "fields")
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := retrieveItems(rawData, "data")
+	if err != nil {
+		return nil, err
+	}
+
+	rawMonthlyQuotes, err := zipFieldsAndItems(fields, items)
+	if err != nil {
+		return nil, err
+	}
+
+	qs := make([]MonthlyQuote, 0)
+	for _, rawMonthlyQuote := range rawMonthlyQuotes {
+		q, err := convertRawMonthlyQuote(rawMonthlyQuote, code, year)
 		if err != nil {
 			return nil, err
 		}
