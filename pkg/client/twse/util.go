@@ -60,7 +60,17 @@ func suffixDuplicateFields(fields []string) []string {
 	return fields
 }
 
-func zipFieldsAndItems(fields []string, items [][]interface{}) ([]map[string]interface{}, error) {
+func zipFieldsAndItems(rawData map[string]json.RawMessage, fieldsKey, itemsKey string) ([]map[string]interface{}, error) {
+	fields, err := retrieveFields(rawData, fieldsKey)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := retrieveItems(rawData, itemsKey)
+	if err != nil {
+		return nil, err
+	}
+
 	// The TWSE uses the same field name to denote the days of the highest and
 	// the lowest prices in yearly quotes. Here I just made the second appearance
 	// to be 'name2', the third one to be 'name3' and so on.

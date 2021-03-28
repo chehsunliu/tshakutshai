@@ -342,17 +342,7 @@ func (c *Client) FetchDayQuotes(date time.Time) (map[string]Quote, error) {
 		return nil, err
 	}
 
-	fields, err := retrieveFields(rawData, "fields9")
-	if err != nil {
-		return nil, err
-	}
-
-	items, err := retrieveItems(rawData, "data9")
-	if err != nil {
-		return nil, err
-	}
-
-	rawDayQuotes, err := zipFieldsAndItems(fields, items)
+	rawDayQuotes, err := zipFieldsAndItems(rawData, "fields9", "data9")
 	if err != nil {
 		return nil, err
 	}
@@ -376,17 +366,7 @@ func (c *Client) FetchDailyQuotes(code string, year int, month time.Month) ([]Qu
 		return nil, err
 	}
 
-	fields, err := retrieveFields(rawData, "fields")
-	if err != nil {
-		return nil, err
-	}
-
-	items, err := retrieveItems(rawData, "data")
-	if err != nil {
-		return nil, err
-	}
-
-	rawDailyQuotes, err := zipFieldsAndItems(fields, items)
+	rawDailyQuotes, err := zipFieldsAndItems(rawData, "fields", "data")
 	if err != nil {
 		return nil, err
 	}
@@ -410,17 +390,7 @@ func (c *Client) FetchMonthlyQuotes(code string, year int) ([]MonthlyQuote, erro
 		return nil, err
 	}
 
-	fields, err := retrieveFields(rawData, "fields")
-	if err != nil {
-		return nil, err
-	}
-
-	items, err := retrieveItems(rawData, "data")
-	if err != nil {
-		return nil, err
-	}
-
-	rawMonthlyQuotes, err := zipFieldsAndItems(fields, items)
+	rawMonthlyQuotes, err := zipFieldsAndItems(rawData, "fields", "data")
 	if err != nil {
 		return nil, err
 	}
@@ -444,17 +414,7 @@ func (c *Client) FetchYearlyQuotes(code string) ([]YearlyQuote, error) {
 		return nil, err
 	}
 
-	fields, err := retrieveFields(rawData, "fields")
-	if err != nil {
-		return nil, err
-	}
-
-	items, err := retrieveItems(rawData, "data")
-	if err != nil {
-		return nil, err
-	}
-
-	rawYearlyQuotes, err := zipFieldsAndItems(fields, items)
+	rawYearlyQuotes, err := zipFieldsAndItems(rawData, "fields", "data")
 	if err != nil {
 		return nil, err
 	}
