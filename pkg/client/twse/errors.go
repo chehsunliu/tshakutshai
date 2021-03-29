@@ -1,12 +1,27 @@
 package twse
 
-type Error string
+import "fmt"
 
-func (e Error) Error() string {
-	return string(e)
+type NoDataError struct {
+	Message string
 }
 
-const (
-	ErrNoData        = Error("no data")
-	ErrQuotaExceeded = Error("quota exceeded")
-)
+func (e *NoDataError) Error() string {
+	return fmt.Sprintf("NoData: %s", e.Message)
+}
+
+type QuotaExceededError struct {
+	Message string
+}
+
+func (e *QuotaExceededError) Error() string {
+	return fmt.Sprintf("QuotaExceeded: %s", e.Message)
+}
+
+type ConnectionError struct {
+	Message string
+}
+
+func (e *ConnectionError) Error() string {
+	return fmt.Sprintf("ConnectionError: %s", e.Message)
+}
