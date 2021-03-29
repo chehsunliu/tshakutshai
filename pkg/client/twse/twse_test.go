@@ -33,6 +33,9 @@ func (m *MockHttpClient) Do(req *http.Request) (*http.Response, error) {
 }
 
 func NewResponseFromFile(filepath string, statusCode int) *http.Response {
+	header := http.Header{}
+	header.Set("content-type", "application/json; charset=utf-8")
+
 	f, err := os.Open(filepath)
 	if err != nil {
 		panic(fmt.Errorf("failed to open %s: %w", filepath, err))
@@ -43,11 +46,22 @@ func NewResponseFromFile(filepath string, statusCode int) *http.Response {
 		panic(fmt.Errorf("failed to create GZIP reader: %w", err))
 	}
 
-	return &http.Response{Body: reader, StatusCode: statusCode}
+	return &http.Response{
+		Body:       reader,
+		StatusCode: statusCode,
+		Header:     header,
+	}
 }
 
 func NewResponseFromString(content string, statusCode int) *http.Response {
-	return &http.Response{Body: io.NopCloser(strings.NewReader(content)), StatusCode: statusCode}
+	header := http.Header{}
+	header.Set("content-type", "application/json; charset=utf-8")
+
+	return &http.Response{
+		Body:       io.NopCloser(strings.NewReader(content)),
+		StatusCode: statusCode,
+		Header:     header,
+	}
 }
 
 func TestClient_FetchDayQuotes(t *testing.T) {
@@ -207,7 +221,9 @@ func TestClient_FetchDayQuotesOnWeekend(t *testing.T) {
 	client := &Client{http: mockHttpClient}
 	_, err := client.FetchDayQuotes(date)
 
-	assert.ErrorIs(t, err, ErrNoData)
+	var twseErr *NoDataError
+	assert.NotNil(t, err)
+	assert.ErrorAs(t, err, &twseErr)
 }
 
 func TestClient_FetchDayQuotesTooFrequently(t *testing.T) {
@@ -226,7 +242,9 @@ func TestClient_FetchDayQuotesTooFrequently(t *testing.T) {
 	client := &Client{http: mockHttpClient}
 	_, err := client.FetchDayQuotes(date)
 
-	assert.ErrorIs(t, err, ErrQuotaExceeded)
+	var twseErr *QuotaExceededError
+	assert.NotNil(t, err)
+	assert.ErrorAs(t, err, &twseErr)
 }
 
 func TestClient_FetchDayQuotesTooFrequentlyCausingEmptyReply(t *testing.T) {
@@ -241,5 +259,7 @@ func TestClient_FetchDayQuotesTooFrequentlyCausingEmptyReply(t *testing.T) {
 	client := &Client{http: mockHttpClient}
 	_, err := client.FetchDayQuotes(date)
 
-	assert.ErrorIs(t, err, ErrQuotaExceeded)
+	var twseErr *QuotaExceededError
+	assert.NotNil(t, err)
+	assert.ErrorAs(t, err, &twseErr)
 }

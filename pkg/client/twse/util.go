@@ -8,46 +8,46 @@ import (
 	"strings"
 )
 
-func isStatOK(rawData map[string]json.RawMessage) (bool, error) {
+func retrieveStat(rawData map[string]json.RawMessage) string {
 	rawStat, ok := rawData["stat"]
 	if !ok {
-		return false, fmt.Errorf("key 'stat' does not exist")
+		panic("key 'stat' does not exist")
 	}
 
 	var stat string
 	if err := json.Unmarshal(rawStat, &stat); err != nil {
-		return false, fmt.Errorf("failed to unmarshal: %w", err)
+		panic(fmt.Sprintf("failed to unmarshal: %s", err))
 	}
 
-	return stat == "OK", nil
+	return stat
 }
 
-func retrieveFields(rawData map[string]json.RawMessage, key string) ([]string, error) {
+func retrieveFields(rawData map[string]json.RawMessage, key string) []string {
 	rawFields, ok := rawData[key]
 	if !ok {
-		return nil, fmt.Errorf("key '%s' does not exist", key)
+		panic(fmt.Sprintf("key '%s' does not exist", key))
 	}
 
 	var fields []string
 	if err := json.Unmarshal(rawFields, &fields); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal: %w", err)
+		panic(fmt.Sprintf("failed to unmarshal: %s", err))
 	}
 
-	return fields, nil
+	return fields
 }
 
-func retrieveItems(rawData map[string]json.RawMessage, key string) ([][]interface{}, error) {
+func retrieveItems(rawData map[string]json.RawMessage, key string) [][]interface{} {
 	rawItems, ok := rawData[key]
 	if !ok {
-		return nil, fmt.Errorf("key '%s' does not exist", key)
+		panic(fmt.Sprintf("key '%s' does not exist", key))
 	}
 
 	var items [][]interface{}
 	if err := json.Unmarshal(rawItems, &items); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal: %w", err)
+		panic(fmt.Sprintf("failed to unmarshal: %s", err))
 	}
 
-	return items, nil
+	return items
 }
 
 func suffixDuplicateFields(fields []string) []string {
@@ -74,16 +74,9 @@ func suffixDuplicateFields(fields []string) []string {
 	return fields
 }
 
-func zipFieldsAndItems(rawData map[string]json.RawMessage, fieldsKey, itemsKey string) ([]map[string]interface{}, error) {
-	fields, err := retrieveFields(rawData, fieldsKey)
-	if err != nil {
-		return nil, err
-	}
-
-	items, err := retrieveItems(rawData, itemsKey)
-	if err != nil {
-		return nil, err
-	}
+func zipFieldsAndItems(rawData map[string]json.RawMessage, fieldsKey, itemsKey string) []map[string]interface{} {
+	fields := retrieveFields(rawData, fieldsKey)
+	items := retrieveItems(rawData, itemsKey)
 
 	// The TWSE uses the same field name to denote the days of the highest and
 	// the lowest prices in yearly quotes. Here I just made the second appearance
@@ -93,10 +86,7 @@ func zipFieldsAndItems(rawData map[string]json.RawMessage, fieldsKey, itemsKey s
 
 	for i := range rawRecords {
 		if len(fields) != len(items[i]) {
-			return nil, fmt.Errorf(
-				"fields %v has %d elements but item %v has only %d",
-				fields, len(fields), items[i], len(items[i]),
-			)
+			panic(fmt.Sprintf("fields %v has %d elements but item %v has only %d", fields, len(fields), items[i], len(items[i])))
 		}
 
 		rawRecord := map[string]interface{}{}
@@ -111,67 +101,60 @@ func zipFieldsAndItems(rawData map[string]json.RawMessage, fieldsKey, itemsKey s
 		rawRecords[i] = rawRecord
 	}
 
-	return rawRecords, nil
+	return rawRecords
 }
 
-func convertToString(rawQuote map[string]interface{}, field string) (string, error) {
+func convertToString(rawQuote map[string]interface{}, field string) string {
 	i, ok := rawQuote[field]
 	if !ok {
-		return "", fmt.Errorf("field '%s' does not exist in %v", field, rawQuote)
+		panic(fmt.Sprintf("field '%s' does not exist in %v", field, rawQuote))
 	}
 
 	s, ok := i.(string)
 	if !ok {
-		return "", fmt.Errorf("value %v of field '%s' in %v is not string", i, field, rawQuote)
+		panic(fmt.Sprintf("value %v of field '%s' in %v is not string", i, field, rawQuote))
 	}
 
-	return s, nil
+	return s
 }
 
-func convertToFloat64(rawQuote map[string]interface{}, field string) (float64, error) {
+func convertToFloat64(rawQuote map[string]interface{}, field string) float64 {
 	i, ok := rawQuote[field]
 	if !ok {
-		return 0, fmt.Errorf("field '%s' does not exist in %v", field, rawQuote)
+		panic(fmt.Sprintf("field '%s' does not exist in %v", field, rawQuote))
 	}
 
 	f, ok := i.(float64)
 	if !ok {
-		return 0, fmt.Errorf(
-			"value %v of field '%s' in %v is not int but %s", i, field, rawQuote, reflect.TypeOf(i))
+		panic(fmt.Sprintf("value %v of field '%s' in %v is not int but %s", i, field, rawQuote, reflect.TypeOf(i)))
 	}
 
-	return f, nil
+	return f
 }
 
-func convertToStringThenUint64(rawQuote map[string]interface{}, field string) (uint64, error) {
-	s, err := convertToString(rawQuote, field)
-	if err != nil {
-		return 0, err
-	}
+func convertToStringThenUint64(rawQuote map[string]interface{}, field string) uint64 {
+	s := convertToString(rawQuote, field)
 
 	v, err := strconv.ParseUint(strings.Replace(s, ",", "", -1), 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("value %v of field '%s' in %v is not uint64: %w", v, field, rawQuote, err)
+		panic(fmt.Sprintf("value %v of field '%s' in %v is not uint64: %s", v, field, rawQuote, err))
 	}
 
-	return v, nil
+	return v
 }
 
-func convertToStringThenFloat64(rawQuote map[string]interface{}, field string) (float64, error) {
-	s, err := convertToString(rawQuote, field)
-	if err != nil {
-		return 0, err
-	}
+func convertToStringThenFloat64(rawQuote map[string]interface{}, field string) float64 {
+	s := convertToString(rawQuote, field)
 
 	// If a stock have no transactions made, its 4 prices will be '--'.
 	if s == "--" {
-		return 0, nil
+		return 0
 	}
 
 	v, err := strconv.ParseFloat(strings.Replace(s, ",", "", -1), 64)
 	if err != nil {
-		return 0, fmt.Errorf("value %v of field '%s' in %v is not float64: %w", v, field, rawQuote, err)
+		panic(fmt.Sprintf("value %v of field '%s' in %v is not float64: %s", v, field, rawQuote, err))
 	}
 
-	return v, nil
+	return v
 }
