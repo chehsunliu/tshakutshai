@@ -3,7 +3,11 @@ COVERAGE_HTML := coverage.html
 
 .PHONY: test
 test:
-	go test -v ./...
+	go test -v ./pkg/...
+
+.PHONY: integration
+integration:
+	go test -v ./integration/...
 
 .PHONY: coverage
 coverage:
