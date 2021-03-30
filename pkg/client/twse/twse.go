@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chehsunliu/tshakutshai/pkg/internal/throttle"
+	tkthttp "github.com/chehsunliu/tshakutshai/pkg/http"
 )
 
 // Quote is the basic unit returned by the Fetch functions.
@@ -41,27 +41,21 @@ type Quote struct {
 	DateOfLow  time.Time
 }
 
-// HttpClient is an interface acting like http.Client. Client uses an object implementing this interface
-// to query the TWSE server internally.
-type HttpClient interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
 // Client is a crawler gathering data from the TWSE server.
 type Client struct {
 	// HttpClient is the actual object that interacts with the TWSE server. It must not be nil; otherwise,
 	// it will panic during fetching data.
-	HttpClient HttpClient
+	HttpClient tkthttp.Client
 }
 
 // NewClient returns a new Client, which intervals between each query are not less than minInterval.
 func NewClient(minInterval time.Duration) *Client {
-	return &Client{HttpClient: throttle.NewHttpClient(minInterval)}
+	return &Client{HttpClient: tkthttp.NewThrottledClient(minInterval)}
 }
 
 func (c *Client) fetch(p string, rawQuery url.Values) (map[string]json.RawMessage, error) {
 	if c.HttpClient == nil {
-		panic("HttpClient should not be nil")
+		panic("ThrottledClient should not be nil")
 	}
 
 	u := url.URL{Scheme: "https", Host: "www.twse.com.tw", Path: p, RawQuery: rawQuery.Encode()}

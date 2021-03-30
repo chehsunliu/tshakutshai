@@ -1,4 +1,4 @@
-package throttle
+package http
 
 import (
 	"net/http"
@@ -6,7 +6,11 @@ import (
 	"time"
 )
 
-type HttpClient struct {
+type Client interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+type ThrottledClient struct {
 	*http.Client
 
 	minInterval time.Duration
@@ -14,14 +18,14 @@ type HttpClient struct {
 	last        time.Time
 }
 
-func NewHttpClient(minInterval time.Duration) *HttpClient {
-	return &HttpClient{
+func NewThrottledClient(minInterval time.Duration) *ThrottledClient {
+	return &ThrottledClient{
 		Client:      &http.Client{},
 		minInterval: minInterval,
 	}
 }
 
-func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
+func (c *ThrottledClient) Do(req *http.Request) (*http.Response, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
