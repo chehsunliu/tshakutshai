@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/chehsunliu/tshakutshai/pkg/internal/throttle"
 )
 
 type Quote struct {
@@ -55,31 +57,37 @@ type YearlyQuote struct {
 	DateOfLow  time.Time
 }
 
-var site = url.URL{Scheme: "https", Host: "www.twse.com.tw"}
-
-type httpClient interface {
+// HttpClient is an interface acting like http.Client. Client uses an object implementing this interface
+// to query the TWSE server internally.
+type HttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+// Client is a crawler gather data from the TWSE server.
 type Client struct {
-	http httpClient
+	// HttpClient is the actual object that interacts with the TWSE server. It must not be nil; otherwise,
+	// it will panic during fetching data.
+	HttpClient HttpClient
 }
 
-func NewClient() *Client {
-	return &Client{http: &http.Client{}}
+// NewClient returns a new Client, which intervals between each query are not less than minInterval.
+func NewClient(minInterval time.Duration) *Client {
+	return &Client{HttpClient: throttle.NewHttpClient(minInterval)}
 }
 
 func (c *Client) fetch(p string, rawQuery url.Values) (map[string]json.RawMessage, error) {
-	u := site
-	u.Path = p
-	u.RawQuery = rawQuery.Encode()
+	if c.HttpClient == nil {
+		panic("HttpClient should not be nil")
+	}
+
+	u := url.URL{Scheme: "https", Host: "www.twse.com.tw", Path: p, RawQuery: rawQuery.Encode()}
 
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		panic(err)
 	}
 
-	resp, err := c.http.Do(req)
+	resp, err := c.HttpClient.Do(req)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			return nil, &QuotaExceededError{"empty reply from server"}
@@ -233,6 +241,7 @@ func convertRawYearlyQuote(rawYearlyQuote map[string]interface{}, code string) *
 	}
 }
 
+// FetchDayQuotes returns a map that maps stock symbols to their corresponding quotes on that date.
 func (c *Client) FetchDayQuotes(date time.Time) (map[string]Quote, error) {
 	rawData, err := c.fetchDayQuotes(date)
 	if err != nil {
@@ -250,6 +259,7 @@ func (c *Client) FetchDayQuotes(date time.Time) (map[string]Quote, error) {
 	return qs, nil
 }
 
+// FetchDailyQuotes return a Quote slice containing daily quotes on the month of the year.
 func (c *Client) FetchDailyQuotes(code string, year int, month time.Month) ([]Quote, error) {
 	rawData, err := c.fetchDailyQuotes(code, year, month)
 	if err != nil {
@@ -266,6 +276,7 @@ func (c *Client) FetchDailyQuotes(code string, year int, month time.Month) ([]Qu
 	return qs, nil
 }
 
+// FetchMonthlyQuotes return a Quote slice containing monthly quotes of the year.
 func (c *Client) FetchMonthlyQuotes(code string, year int) ([]MonthlyQuote, error) {
 	rawData, err := c.fetchMonthlyQuotes(code, year)
 	if err != nil {
@@ -282,6 +293,7 @@ func (c *Client) FetchMonthlyQuotes(code string, year int) ([]MonthlyQuote, erro
 	return qs, nil
 }
 
+// FetchYearlyQuotes return a Quote slice containing yearly quotes of all time.
 func (c *Client) FetchYearlyQuotes(code string) ([]YearlyQuote, error) {
 	rawData, err := c.fetchYearlyQuotes(code)
 	if err != nil {
