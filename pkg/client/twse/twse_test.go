@@ -1,4 +1,4 @@
-package twse
+package twse_test
 
 import (
 	"compress/gzip"
@@ -12,11 +12,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-)
 
-func TestNewClient(t *testing.T) {
-	assert.NotNil(t, NewClient())
-}
+	"github.com/chehsunliu/tshakutshai/pkg/client/twse"
+)
 
 type MockHttpClient struct {
 	mock.Mock
@@ -74,13 +72,13 @@ func TestClient_FetchDayQuotes(t *testing.T) {
 		return u.Path == "/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210324"
 	})).Return(mockResponse, nil)
 
-	client := &Client{http: mockHttpClient}
+	client := &twse.Client{HttpClient: mockHttpClient}
 	quotes, err := client.FetchDayQuotes(date)
 
 	assert.Nilf(t, err, "%+v", err)
 	assert.Greater(t, len(quotes), 20000)
 
-	assert.Equal(t, Quote{
+	assert.Equal(t, twse.Quote{
 		Code:         "0050",
 		Name:         "元大台灣50",
 		Date:         date,
@@ -93,7 +91,7 @@ func TestClient_FetchDayQuotes(t *testing.T) {
 		Close:        131.50,
 	}, quotes["0050"])
 
-	assert.Equal(t, Quote{
+	assert.Equal(t, twse.Quote{
 		Code:         "2330",
 		Name:         "台積電",
 		Date:         date,
@@ -122,13 +120,13 @@ func TestClient_FetchDailyQuotes(t *testing.T) {
 			u.Query().Get("stockNo") == code
 	})).Return(mockResponse, nil)
 
-	client := &Client{http: mockHttpClient}
+	client := &twse.Client{HttpClient: mockHttpClient}
 	quotes, err := client.FetchDailyQuotes(code, date.Year(), date.Month())
 
 	assert.Nilf(t, err, "%+v", err)
 	assert.Greater(t, len(quotes), 10)
 
-	assert.Equal(t, Quote{
+	assert.Equal(t, twse.Quote{
 		Code:         "2330",
 		Name:         "",
 		Date:         date,
@@ -157,13 +155,13 @@ func TestClient_FetchMonthlyQuotes(t *testing.T) {
 			u.Query().Get("stockNo") == code
 	})).Return(mockResponse, nil)
 
-	client := &Client{http: mockHttpClient}
+	client := &twse.Client{HttpClient: mockHttpClient}
 	qs, err := client.FetchMonthlyQuotes(code, year)
 
 	assert.Nilf(t, err, "%+v", err)
 	assert.Equal(t, 12, len(qs))
 
-	assert.Equal(t, MonthlyQuote{
+	assert.Equal(t, twse.MonthlyQuote{
 		Code:         code,
 		Year:         year,
 		Month:        time.April,
@@ -187,13 +185,13 @@ func TestClient_FetchYearlyQuotes(t *testing.T) {
 		return u.Path == "/exchangeReport/FMNPTK" && u.Query().Get("stockNo") == code
 	})).Return(mockResponse, nil)
 
-	client := &Client{http: mockHttpClient}
+	client := &twse.Client{HttpClient: mockHttpClient}
 	qs, err := client.FetchYearlyQuotes(code)
 
 	assert.Nilf(t, err, "%+v", err)
 	assert.Equal(t, 18, len(qs))
 
-	assert.Equal(t, YearlyQuote{
+	assert.Equal(t, twse.YearlyQuote{
 		Code:         code,
 		Year:         2020,
 		Volume:       2_564_396_277,
@@ -218,10 +216,10 @@ func TestClient_FetchDayQuotesOnWeekend(t *testing.T) {
 		return u.Path == "/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210328"
 	})).Return(mockResponse, nil)
 
-	client := &Client{http: mockHttpClient}
+	client := &twse.Client{HttpClient: mockHttpClient}
 	_, err := client.FetchDayQuotes(date)
 
-	var twseErr *NoDataError
+	var twseErr *twse.NoDataError
 	assert.NotNil(t, err)
 	assert.ErrorAs(t, err, &twseErr)
 }
@@ -239,10 +237,10 @@ func TestClient_FetchDayQuotesTooFrequently(t *testing.T) {
 		return u.Path == "/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210328"
 	})).Return(mockResponse, nil)
 
-	client := &Client{http: mockHttpClient}
+	client := &twse.Client{HttpClient: mockHttpClient}
 	_, err := client.FetchDayQuotes(date)
 
-	var twseErr *QuotaExceededError
+	var twseErr *twse.QuotaExceededError
 	assert.NotNil(t, err)
 	assert.ErrorAs(t, err, &twseErr)
 }
@@ -256,10 +254,10 @@ func TestClient_FetchDayQuotesTooFrequentlyCausingEmptyReply(t *testing.T) {
 		return u.Path == "/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210328"
 	})).Return(nil, io.EOF)
 
-	client := &Client{http: mockHttpClient}
+	client := &twse.Client{HttpClient: mockHttpClient}
 	_, err := client.FetchDayQuotes(date)
 
-	var twseErr *QuotaExceededError
+	var twseErr *twse.QuotaExceededError
 	assert.NotNil(t, err)
 	assert.ErrorAs(t, err, &twseErr)
 }
