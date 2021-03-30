@@ -24,35 +24,12 @@ type Quote struct {
 	Transactions uint64
 	Value        uint64
 
-	Open  float64
-	High  float64
-	Low   float64
-	Close float64
-}
-
-type MonthlyQuote struct {
-	Code  string
-	Year  int
-	Month time.Month
-
-	Volume       uint64
-	Transactions uint64
-	Value        uint64
-
 	High float64
 	Low  float64
-}
 
-type YearlyQuote struct {
-	Code string
-	Year int
+	Open  float64
+	Close float64
 
-	Volume       uint64
-	Transactions uint64
-	Value        uint64
-
-	High       float64
-	Low        float64
 	DateOfHigh time.Time
 	DateOfLow  time.Time
 }
@@ -63,7 +40,7 @@ type HttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// Client is a crawler gather data from the TWSE server.
+// Client is a crawler gathering data from the TWSE server.
 type Client struct {
 	// HttpClient is the actual object that interacts with the TWSE server. It must not be nil; otherwise,
 	// it will panic during fetching data.
@@ -190,7 +167,7 @@ func convertRawDailyQuote(rawDailyQuote map[string]interface{}, code string, yea
 	return q
 }
 
-func convertRawMonthlyQuote(rawMonthlyQuote map[string]interface{}, code string, year int) *MonthlyQuote {
+func convertRawMonthlyQuote(rawMonthlyQuote map[string]interface{}, code string, year int) *Quote {
 	rawMonth := convertToFloat64(rawMonthlyQuote, "月份")
 
 	t, err := time.Parse("01", fmt.Sprintf("%02d", int(rawMonth)))
@@ -198,10 +175,9 @@ func convertRawMonthlyQuote(rawMonthlyQuote map[string]interface{}, code string,
 		panic(fmt.Sprintf("%f is not a legal month: %s", rawMonth, err))
 	}
 
-	return &MonthlyQuote{
+	return &Quote{
 		Code:         code,
-		Year:         year,
-		Month:        t.Month(),
+		Date:         time.Date(year, t.Month(), 1, 0, 0, 0, 0, time.UTC),
 		Volume:       convertToStringThenUint64(rawMonthlyQuote, "成交股數(B)"),
 		Transactions: convertToStringThenUint64(rawMonthlyQuote, "成交筆數"),
 		Value:        convertToStringThenUint64(rawMonthlyQuote, "成交金額(A)"),
@@ -210,7 +186,7 @@ func convertRawMonthlyQuote(rawMonthlyQuote map[string]interface{}, code string,
 	}
 }
 
-func convertRawYearlyQuote(rawYearlyQuote map[string]interface{}, code string) *YearlyQuote {
+func convertRawYearlyQuote(rawYearlyQuote map[string]interface{}, code string) *Quote {
 	rawYear := convertToFloat64(rawYearlyQuote, "年度")
 	year := 1911 + int(rawYear)
 
@@ -226,18 +202,16 @@ func convertRawYearlyQuote(rawYearlyQuote map[string]interface{}, code string) *
 		panic(fmt.Sprintf("%s is not a legal month/day: %s", rawDateOfLow, err))
 	}
 
-	return &YearlyQuote{
-		Code: code,
-		Year: year,
-
+	return &Quote{
+		Code:         code,
+		Date:         time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC),
 		Volume:       convertToStringThenUint64(rawYearlyQuote, "成交股數"),
 		Transactions: convertToStringThenUint64(rawYearlyQuote, "成交筆數"),
 		Value:        convertToStringThenUint64(rawYearlyQuote, "成交金額"),
-
-		High:       convertToStringThenFloat64(rawYearlyQuote, "最高價"),
-		Low:        convertToStringThenFloat64(rawYearlyQuote, "最低價"),
-		DateOfHigh: dateOfHigh,
-		DateOfLow:  dateOfLow,
+		High:         convertToStringThenFloat64(rawYearlyQuote, "最高價"),
+		Low:          convertToStringThenFloat64(rawYearlyQuote, "最低價"),
+		DateOfHigh:   dateOfHigh,
+		DateOfLow:    dateOfLow,
 	}
 }
 
@@ -277,7 +251,7 @@ func (c *Client) FetchDailyQuotes(code string, year int, month time.Month) ([]Qu
 }
 
 // FetchMonthlyQuotes return a Quote slice containing monthly quotes of the year.
-func (c *Client) FetchMonthlyQuotes(code string, year int) ([]MonthlyQuote, error) {
+func (c *Client) FetchMonthlyQuotes(code string, year int) ([]Quote, error) {
 	rawData, err := c.fetchMonthlyQuotes(code, year)
 	if err != nil {
 		return nil, err
@@ -285,7 +259,7 @@ func (c *Client) FetchMonthlyQuotes(code string, year int) ([]MonthlyQuote, erro
 
 	rawMonthlyQuotes := zipFieldsAndItems(rawData, "fields", "data")
 
-	qs := make([]MonthlyQuote, 0)
+	qs := make([]Quote, 0)
 	for _, rawMonthlyQuote := range rawMonthlyQuotes {
 		qs = append(qs, *convertRawMonthlyQuote(rawMonthlyQuote, code, year))
 	}
@@ -294,7 +268,7 @@ func (c *Client) FetchMonthlyQuotes(code string, year int) ([]MonthlyQuote, erro
 }
 
 // FetchYearlyQuotes return a Quote slice containing yearly quotes of all time.
-func (c *Client) FetchYearlyQuotes(code string) ([]YearlyQuote, error) {
+func (c *Client) FetchYearlyQuotes(code string) ([]Quote, error) {
 	rawData, err := c.fetchYearlyQuotes(code)
 	if err != nil {
 		return nil, err
@@ -302,7 +276,7 @@ func (c *Client) FetchYearlyQuotes(code string) ([]YearlyQuote, error) {
 
 	rawYearlyQuotes := zipFieldsAndItems(rawData, "fields", "data")
 
-	qs := make([]YearlyQuote, 0)
+	qs := make([]Quote, 0)
 	for _, rawYearlyQuote := range rawYearlyQuotes {
 		qs = append(qs, *convertRawYearlyQuote(rawYearlyQuote, code))
 	}
