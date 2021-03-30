@@ -24,13 +24,14 @@ type Quote struct {
 	Transactions uint64
 	Value        uint64
 
+	High float64
+	Low  float64
+
 	Open  float64
-	High  float64
-	Low   float64
 	Close float64
 
-	DateOfHigh *time.Time
-	DateOfLow  *time.Time
+	DateOfHigh time.Time
+	DateOfLow  time.Time
 }
 
 // HttpClient is an interface acting like http.Client. Client uses an object implementing this interface
@@ -209,8 +210,8 @@ func convertRawYearlyQuote(rawYearlyQuote map[string]interface{}, code string) *
 		Value:        convertToStringThenUint64(rawYearlyQuote, "成交金額"),
 		High:         convertToStringThenFloat64(rawYearlyQuote, "最高價"),
 		Low:          convertToStringThenFloat64(rawYearlyQuote, "最低價"),
-		DateOfHigh:   &dateOfHigh,
-		DateOfLow:    &dateOfLow,
+		DateOfHigh:   dateOfHigh,
+		DateOfLow:    dateOfLow,
 	}
 }
 
