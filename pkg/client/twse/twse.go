@@ -15,21 +15,28 @@ import (
 	"github.com/chehsunliu/tshakutshai/pkg/internal/throttle"
 )
 
+// Quote is the basic unit returned by the Fetch functions.
 type Quote struct {
+	// Code/symbol of a stock, e.g. 0050 and 2330.
 	Code string
+	// Name is the Chinese stock name and only available in Client.FetchDayQuotes.
 	Name string
+	// Date represents the date in Client.FetchDayQuotes and Client.FetchDailyQuotes. You should ignore
+	// the day field in Client.FetchMonthlyQuotes and even the month field in Client.FetchYearlyQuotes.
 	Date time.Time
 
 	Volume       uint64
 	Transactions uint64
 	Value        uint64
 
-	High float64
-	Low  float64
-
+	// If no transactions are made, i.e. Transactions equals to zero, they will all zeros. Note that
+	// Open and Close are only meaningful in Client.FetchDayQuotes and Client.FetchDailyQuotes.
+	High  float64
+	Low   float64
 	Open  float64
 	Close float64
 
+	// These two fields are only used in Client.FetchYearlyQuotes.
 	DateOfHigh time.Time
 	DateOfLow  time.Time
 }
