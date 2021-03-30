@@ -28,6 +28,9 @@ type Quote struct {
 	High  float64
 	Low   float64
 	Close float64
+
+	DateOfHigh *time.Time
+	DateOfLow  *time.Time
 }
 
 type MonthlyQuote struct {
@@ -41,20 +44,6 @@ type MonthlyQuote struct {
 
 	High float64
 	Low  float64
-}
-
-type YearlyQuote struct {
-	Code string
-	Year int
-
-	Volume       uint64
-	Transactions uint64
-	Value        uint64
-
-	High       float64
-	Low        float64
-	DateOfHigh time.Time
-	DateOfLow  time.Time
 }
 
 // HttpClient is an interface acting like http.Client. Client uses an object implementing this interface
@@ -210,7 +199,7 @@ func convertRawMonthlyQuote(rawMonthlyQuote map[string]interface{}, code string,
 	}
 }
 
-func convertRawYearlyQuote(rawYearlyQuote map[string]interface{}, code string) *YearlyQuote {
+func convertRawYearlyQuote(rawYearlyQuote map[string]interface{}, code string) *Quote {
 	rawYear := convertToFloat64(rawYearlyQuote, "年度")
 	year := 1911 + int(rawYear)
 
@@ -226,18 +215,16 @@ func convertRawYearlyQuote(rawYearlyQuote map[string]interface{}, code string) *
 		panic(fmt.Sprintf("%s is not a legal month/day: %s", rawDateOfLow, err))
 	}
 
-	return &YearlyQuote{
-		Code: code,
-		Year: year,
-
+	return &Quote{
+		Code:         code,
+		Date:         time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC),
 		Volume:       convertToStringThenUint64(rawYearlyQuote, "成交股數"),
 		Transactions: convertToStringThenUint64(rawYearlyQuote, "成交筆數"),
 		Value:        convertToStringThenUint64(rawYearlyQuote, "成交金額"),
-
-		High:       convertToStringThenFloat64(rawYearlyQuote, "最高價"),
-		Low:        convertToStringThenFloat64(rawYearlyQuote, "最低價"),
-		DateOfHigh: dateOfHigh,
-		DateOfLow:  dateOfLow,
+		High:         convertToStringThenFloat64(rawYearlyQuote, "最高價"),
+		Low:          convertToStringThenFloat64(rawYearlyQuote, "最低價"),
+		DateOfHigh:   &dateOfHigh,
+		DateOfLow:    &dateOfLow,
 	}
 }
 
@@ -294,7 +281,7 @@ func (c *Client) FetchMonthlyQuotes(code string, year int) ([]MonthlyQuote, erro
 }
 
 // FetchYearlyQuotes return a Quote slice containing yearly quotes of all time.
-func (c *Client) FetchYearlyQuotes(code string) ([]YearlyQuote, error) {
+func (c *Client) FetchYearlyQuotes(code string) ([]Quote, error) {
 	rawData, err := c.fetchYearlyQuotes(code)
 	if err != nil {
 		return nil, err
@@ -302,7 +289,7 @@ func (c *Client) FetchYearlyQuotes(code string) ([]YearlyQuote, error) {
 
 	rawYearlyQuotes := zipFieldsAndItems(rawData, "fields", "data")
 
-	qs := make([]YearlyQuote, 0)
+	qs := make([]Quote, 0)
 	for _, rawYearlyQuote := range rawYearlyQuotes {
 		qs = append(qs, *convertRawYearlyQuote(rawYearlyQuote, code))
 	}

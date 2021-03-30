@@ -191,16 +191,19 @@ func TestClient_FetchYearlyQuotes(t *testing.T) {
 	assert.Nilf(t, err, "%+v", err)
 	assert.Equal(t, 18, len(qs))
 
-	assert.Equal(t, twse.YearlyQuote{
+	dateH := time.Date(2020, time.December, 31, 0, 0, 0, 0, time.UTC)
+	dateL := time.Date(2020, time.March, 19, 0, 0, 0, 0, time.UTC)
+
+	assert.Equal(t, twse.Quote{
 		Code:         code,
-		Year:         2020,
+		Date:         time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC),
 		Volume:       2_564_396_277,
 		Value:        234_459_163_641,
 		Transactions: 1_413_186,
 		High:         122.40,
 		Low:          67.25,
-		DateOfHigh:   time.Date(2020, time.December, 31, 0, 0, 0, 0, time.UTC),
-		DateOfLow:    time.Date(2020, time.March, 19, 0, 0, 0, 0, time.UTC),
+		DateOfHigh:   &dateH,
+		DateOfLow:    &dateL,
 	}, qs[17])
 
 	mockHttpClient.AssertNumberOfCalls(t, "Do", 1)
