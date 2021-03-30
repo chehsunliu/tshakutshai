@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 5
 
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -44,4 +46,4 @@ jobs:
           go-version: 1.16
 
       - name: Perform integration tests
-        run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./integration/...
+        run: go test -v -race ./integration/...

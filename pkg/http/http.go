@@ -11,16 +11,16 @@ type Client interface {
 }
 
 type ThrottledClient struct {
-	*http.Client
+	client Client
 
 	minInterval time.Duration
 	mutex       sync.Mutex
 	last        time.Time
 }
 
-func NewThrottledClient(minInterval time.Duration) *ThrottledClient {
+func NewThrottledClient(client Client, minInterval time.Duration) *ThrottledClient {
 	return &ThrottledClient{
-		Client:      &http.Client{},
+		client:      client,
 		minInterval: minInterval,
 	}
 }
@@ -34,7 +34,7 @@ func (c *ThrottledClient) Do(req *http.Request) (*http.Response, error) {
 		time.Sleep(c.minInterval - elapsed)
 	}
 
-	resp, err := c.Client.Do(req)
+	resp, err := c.client.Do(req)
 	c.last = time.Now()
 	return resp, err
 }

@@ -50,7 +50,7 @@ type Client struct {
 
 // NewClient returns a new Client, which intervals between each query are not less than minInterval.
 func NewClient(minInterval time.Duration) *Client {
-	return &Client{HttpClient: tkthttp.NewThrottledClient(minInterval)}
+	return &Client{HttpClient: tkthttp.NewThrottledClient(&http.Client{}, minInterval)}
 }
 
 func (c *Client) fetch(p string, rawQuery url.Values) (map[string]json.RawMessage, error) {
