@@ -33,19 +33,6 @@ type Quote struct {
 	DateOfLow  *time.Time
 }
 
-type MonthlyQuote struct {
-	Code  string
-	Year  int
-	Month time.Month
-
-	Volume       uint64
-	Transactions uint64
-	Value        uint64
-
-	High float64
-	Low  float64
-}
-
 // HttpClient is an interface acting like http.Client. Client uses an object implementing this interface
 // to query the TWSE server internally.
 type HttpClient interface {
@@ -179,7 +166,7 @@ func convertRawDailyQuote(rawDailyQuote map[string]interface{}, code string, yea
 	return q
 }
 
-func convertRawMonthlyQuote(rawMonthlyQuote map[string]interface{}, code string, year int) *MonthlyQuote {
+func convertRawMonthlyQuote(rawMonthlyQuote map[string]interface{}, code string, year int) *Quote {
 	rawMonth := convertToFloat64(rawMonthlyQuote, "月份")
 
 	t, err := time.Parse("01", fmt.Sprintf("%02d", int(rawMonth)))
@@ -187,10 +174,9 @@ func convertRawMonthlyQuote(rawMonthlyQuote map[string]interface{}, code string,
 		panic(fmt.Sprintf("%f is not a legal month: %s", rawMonth, err))
 	}
 
-	return &MonthlyQuote{
+	return &Quote{
 		Code:         code,
-		Year:         year,
-		Month:        t.Month(),
+		Date:         time.Date(year, t.Month(), 1, 0, 0, 0, 0, time.UTC),
 		Volume:       convertToStringThenUint64(rawMonthlyQuote, "成交股數(B)"),
 		Transactions: convertToStringThenUint64(rawMonthlyQuote, "成交筆數"),
 		Value:        convertToStringThenUint64(rawMonthlyQuote, "成交金額(A)"),
@@ -264,7 +250,7 @@ func (c *Client) FetchDailyQuotes(code string, year int, month time.Month) ([]Qu
 }
 
 // FetchMonthlyQuotes return a Quote slice containing monthly quotes of the year.
-func (c *Client) FetchMonthlyQuotes(code string, year int) ([]MonthlyQuote, error) {
+func (c *Client) FetchMonthlyQuotes(code string, year int) ([]Quote, error) {
 	rawData, err := c.fetchMonthlyQuotes(code, year)
 	if err != nil {
 		return nil, err
@@ -272,7 +258,7 @@ func (c *Client) FetchMonthlyQuotes(code string, year int) ([]MonthlyQuote, erro
 
 	rawMonthlyQuotes := zipFieldsAndItems(rawData, "fields", "data")
 
-	qs := make([]MonthlyQuote, 0)
+	qs := make([]Quote, 0)
 	for _, rawMonthlyQuote := range rawMonthlyQuotes {
 		qs = append(qs, *convertRawMonthlyQuote(rawMonthlyQuote, code, year))
 	}

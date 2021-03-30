@@ -161,10 +161,9 @@ func TestClient_FetchMonthlyQuotes(t *testing.T) {
 	assert.Nilf(t, err, "%+v", err)
 	assert.Equal(t, 12, len(qs))
 
-	assert.Equal(t, twse.MonthlyQuote{
+	assert.Equal(t, twse.Quote{
 		Code:         code,
-		Year:         year,
-		Month:        time.April,
+		Date:         time.Date(year, time.April, 1, 0, 0, 0, 0, time.UTC),
 		Volume:       218_553_058,
 		Transactions: 146_711,
 		Value:        80_262_421_295,
