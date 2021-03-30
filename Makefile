@@ -11,7 +11,7 @@ integration:
 
 .PHONY: coverage
 coverage:
-	go test -v -coverprofile=$(COVERAGE_FILE) ./...
+	go test -v -coverprofile=$(COVERAGE_FILE) ./pkg/...
 	go tool cover -func $(COVERAGE_FILE)
 	go tool cover -html $(COVERAGE_FILE) -o $(COVERAGE_HTML)
 
