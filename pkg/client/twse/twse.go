@@ -63,7 +63,7 @@ type HttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// Client is a crawler gather data from the TWSE server.
+// Client is a crawler gathering data from the TWSE server.
 type Client struct {
 	// HttpClient is the actual object that interacts with the TWSE server. It must not be nil; otherwise,
 	// it will panic during fetching data.
