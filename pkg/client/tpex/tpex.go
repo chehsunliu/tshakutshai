@@ -65,10 +65,29 @@ func (c *Client) fetchDayQuotes(date time.Time) (map[string]json.RawMessage, err
 }
 
 func (c *Client) FetchDayQuotes(date time.Time) (map[string]Quote, error) {
-	_, err := c.fetchDayQuotes(date)
+	rawData, err := c.fetchDayQuotes(date)
 	if err != nil {
 		return nil, err
 	}
 
-	return nil, nil
+	qs := map[string]Quote{}
+
+	items := deserializeSliceOfSlicesOfStrings(rawData, "aaData")
+	for _, item := range items {
+		q := Quote{
+			Code:         item[0],
+			Name:         item[1],
+			Date:         date,
+			Volume:       stringToUint64(item[8]),
+			Transactions: stringToUint64(item[10]),
+			Value:        stringToUint64(item[9]),
+			High:         stringToFloat64(item[5]),
+			Low:          stringToFloat64(item[6]),
+			Open:         stringToFloat64(item[4]),
+			Close:        stringToFloat64(item[2]),
+		}
+		qs[q.Code] = q
+	}
+
+	return qs, nil
 }
