@@ -137,7 +137,7 @@ func convertToStringThenUint64(rawQuote map[string]interface{}, field string) ui
 
 	v, err := strconv.ParseUint(strings.Replace(s, ",", "", -1), 10, 64)
 	if err != nil {
-		panic(fmt.Sprintf("value %v of field '%s' in %v is not uint64: %s", v, field, rawQuote, err))
+		panic(fmt.Sprintf("value %v of field '%s' in %v is not uint64: %s", s, field, rawQuote, err))
 	}
 
 	return v
@@ -153,7 +153,7 @@ func convertToStringThenFloat64(rawQuote map[string]interface{}, field string) f
 
 	v, err := strconv.ParseFloat(strings.Replace(s, ",", "", -1), 64)
 	if err != nil {
-		panic(fmt.Sprintf("value %v of field '%s' in %v is not float64: %s", v, field, rawQuote, err))
+		panic(fmt.Sprintf("value %v of field '%s' in %v is not float64: %s", s, field, rawQuote, err))
 	}
 
 	return v

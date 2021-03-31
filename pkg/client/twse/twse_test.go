@@ -1,12 +1,8 @@
 package twse_test
 
 import (
-	"compress/gzip"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -14,59 +10,14 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/chehsunliu/tshakutshai/pkg/client/twse"
+	"github.com/chehsunliu/tshakutshai/pkg/internal/tkttest"
 )
-
-type MockHttpClient struct {
-	mock.Mock
-}
-
-func (m *MockHttpClient) Do(req *http.Request) (*http.Response, error) {
-	args := m.Called(req)
-	r0, r1 := args.Get(0), args.Error(1)
-	if r0 == nil {
-		return nil, r1
-	} else {
-		return r0.(*http.Response), r1
-	}
-}
-
-func NewResponseFromFile(filepath string, statusCode int) *http.Response {
-	header := http.Header{}
-	header.Set("content-type", "application/json; charset=utf-8")
-
-	f, err := os.Open(filepath)
-	if err != nil {
-		panic(fmt.Errorf("failed to open %s: %w", filepath, err))
-	}
-
-	reader, err := gzip.NewReader(f)
-	if err != nil {
-		panic(fmt.Errorf("failed to create GZIP reader: %w", err))
-	}
-
-	return &http.Response{
-		Body:       reader,
-		StatusCode: statusCode,
-		Header:     header,
-	}
-}
-
-func NewResponseFromString(content string, statusCode int) *http.Response {
-	header := http.Header{}
-	header.Set("content-type", "application/json; charset=utf-8")
-
-	return &http.Response{
-		Body:       io.NopCloser(strings.NewReader(content)),
-		StatusCode: statusCode,
-		Header:     header,
-	}
-}
 
 func TestClient_FetchDayQuotes(t *testing.T) {
 	date := time.Date(2021, 3, 24, 0, 0, 0, 0, time.UTC)
 
-	mockResponse := NewResponseFromFile("./testdata/quotes-tw-20210324.json.gz", 200)
-	mockHttpClient := &MockHttpClient{}
+	mockResponse := tkttest.NewResponseFromFile("./testdata/quotes-tw-20210324.json.gz", 200)
+	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
 		return u.Path == "/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210324"
@@ -111,8 +62,8 @@ func TestClient_FetchDailyQuotes(t *testing.T) {
 	code := "2330"
 	date := time.Date(2021, 2, 1, 0, 0, 0, 0, time.UTC)
 
-	mockResponse := NewResponseFromFile("./testdata/quotes-tw-202102-2330.json.gz", 200)
-	mockHttpClient := &MockHttpClient{}
+	mockResponse := tkttest.NewResponseFromFile("./testdata/quotes-tw-202102-2330.json.gz", 200)
+	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
 		return u.Path == "/exchangeReport/STOCK_DAY" &&
@@ -146,8 +97,8 @@ func TestClient_FetchMonthlyQuotes(t *testing.T) {
 	code := "2454"
 	year := 2020
 
-	mockResponse := NewResponseFromFile("./testdata/quotes-tw-2020-2454.json.gz", 200)
-	mockHttpClient := &MockHttpClient{}
+	mockResponse := tkttest.NewResponseFromFile("./testdata/quotes-tw-2020-2454.json.gz", 200)
+	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
 		return u.Path == "/exchangeReport/FMSRFK" &&
@@ -177,8 +128,8 @@ func TestClient_FetchMonthlyQuotes(t *testing.T) {
 func TestClient_FetchYearlyQuotes(t *testing.T) {
 	code := "0050"
 
-	mockResponse := NewResponseFromFile("./testdata/quotes-tw-0050.json.gz", 200)
-	mockHttpClient := &MockHttpClient{}
+	mockResponse := tkttest.NewResponseFromFile("./testdata/quotes-tw-0050.json.gz", 200)
+	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
 		return u.Path == "/exchangeReport/FMNPTK" && u.Query().Get("stockNo") == code
@@ -208,8 +159,8 @@ func TestClient_FetchYearlyQuotes(t *testing.T) {
 func TestClient_FetchDayQuotesOnWeekend(t *testing.T) {
 	date := time.Date(2021, 3, 28, 0, 0, 0, 0, time.UTC)
 
-	mockResponse := NewResponseFromString(`{"stat":"很抱歉，沒有符合條件的資料!"}`, 200)
-	mockHttpClient := &MockHttpClient{}
+	mockResponse := tkttest.NewResponseFromString(`{"stat":"很抱歉，沒有符合條件的資料!"}`, 200)
+	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
 		return u.Path == "/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210328"
@@ -228,9 +179,9 @@ func TestClient_FetchDayQuotesTooFrequently(t *testing.T) {
 
 	mockResponseHeader := http.Header{}
 	mockResponseHeader.Set("content-type", "text/html; charset=utf-8")
-	mockResponse := NewResponseFromFile("./testdata/quotes-tw-banned.html.gz", 200)
+	mockResponse := tkttest.NewResponseFromFile("./testdata/quotes-tw-banned.html.gz", 200)
 	mockResponse.Header = mockResponseHeader
-	mockHttpClient := &MockHttpClient{}
+	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
 		return u.Path == "/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210328"
@@ -247,7 +198,7 @@ func TestClient_FetchDayQuotesTooFrequently(t *testing.T) {
 func TestClient_FetchDayQuotesTooFrequentlyCausingEmptyReply(t *testing.T) {
 	date := time.Date(2021, 3, 28, 0, 0, 0, 0, time.UTC)
 
-	mockHttpClient := &MockHttpClient{}
+	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
 		return u.Path == "/exchangeReport/MI_INDEX" && u.Query().Get("date") == "20210328"
