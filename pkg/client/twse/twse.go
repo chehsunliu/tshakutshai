@@ -1,3 +1,31 @@
+// Package twse provides HTTP client to interact with the Taiwan Stock Exchange Corporation (TWSE)
+// server.
+//
+// Create one by NewClient with throttling implementation internally (you will be banned by the
+// TWSE if query too frequently) to query quotes of all stocks in a day:
+//
+//     client := twse.NewClient(time.Second * 2)
+//     qs, _ := client.FetchDayQuotes(time.Date(2021, 3, 24, 0, 0, 0, 0, time.UTC))
+//
+//     q := qs["2330"]
+//     fmt.Println(q.Code, q.Name, q.Open, q.Close)
+//
+// You can also create Client with your own HTTP client:
+//
+//     client := &twse.Client{HttpClient: &http.Client{}}
+//
+// Error handling
+//
+// Use type assertions or errors.As provided since Go 1.13 to check errors
+//
+//     if err != nil {
+//         var qe *twse.QuotaExceededError
+//         if errors.As(err, &e) {
+//             // You are unfortunately banned by the TWSE server.
+//         }
+//     }
+//
+// If panic happens, it is possibly due to the API change on the TWSE server side.
 package twse
 
 import (
