@@ -55,7 +55,7 @@ func NewClient(minInterval time.Duration) *Client {
 
 func (c *Client) fetch(p string, rawQuery url.Values) (map[string]json.RawMessage, error) {
 	if c.HttpClient == nil {
-		panic("ThrottledClient should not be nil")
+		panic("Client.HttpClient should not be nil")
 	}
 
 	u := url.URL{Scheme: "https", Host: "www.twse.com.tw", Path: p, RawQuery: rawQuery.Encode()}
