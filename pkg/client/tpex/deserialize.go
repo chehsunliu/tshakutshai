@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func deserializeSliceOfSlicesOfStrings(rawData map[string]json.RawMessage, key string) [][]string {
@@ -19,6 +20,20 @@ func deserializeSliceOfSlicesOfStrings(rawData map[string]json.RawMessage, key s
 	}
 
 	return items
+}
+
+func deserializeString(rawData map[string]json.RawMessage, key string) string {
+	rawItem, ok := rawData[key]
+	if !ok {
+		panic(fmt.Sprintf("key '%s' does not exist", key))
+	}
+
+	var s string
+	if err := json.Unmarshal(rawItem, &s); err != nil {
+		panic(fmt.Sprintf("failed to unmarshal: %s", err))
+	}
+
+	return s
 }
 
 func stringToUint64(s string) uint64 {
@@ -41,4 +56,23 @@ func stringToFloat64(s string) float64 {
 	}
 
 	return v
+}
+
+func stringToDate(s string) time.Time {
+	rawDate := strings.SplitN(s, "/", 2)
+	if len(rawDate) != 2 {
+		panic(fmt.Sprintf("the format of '%s' is unexpected", s))
+	}
+
+	rocYear, err := strconv.ParseInt(rawDate[0], 0, 64)
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse %s to int: %v", rawDate[0], err))
+	}
+
+	t, err := time.Parse("01/02", rawDate[1])
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse %s to month and day: %v", rawDate[1], err))
+	}
+
+	return time.Date(int(rocYear+1911), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
