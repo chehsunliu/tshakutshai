@@ -43,3 +43,36 @@ func TestClient_FetchDayQuotes(t *testing.T) {
 
 	mockHttpClient.AssertNumberOfCalls(t, "Do", 1)
 }
+
+func TestClient_FetchDailyQuotes(t *testing.T) {
+	code := "2330"
+	date := time.Date(2021, 2, 1, 0, 0, 0, 0, time.UTC)
+
+	mockResponse := tkttest.NewResponseFromFile("./testdata/quotes-tw-202102-8044.json.gz", 200)
+	mockHttpClient := &tkttest.MockHttpClient{}
+	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
+		u := req.URL
+		return u.Path == "/web/stock/aftertrading/daily_trading_info/st43_result.php" &&
+			u.Query().Get("d") == "110/02/01" &&
+			u.Query().Get("stkno") == code
+	})).Return(mockResponse, nil)
+
+	client := &tpex.Client{HttpClient: mockHttpClient}
+	qs, err := client.FetchDailyQuotes(code, date.Year(), date.Month())
+	assert.Nilf(t, err, "%+v", err)
+	assert.Equal(t, len(qs), 13)
+
+	q := qs[11]
+	assert.Equal(t, "8044", q.Code)
+	assert.Equal(t, "網家", q.Name)
+	assert.Equal(t, "20210225", q.Date.Format("20060102"))
+	assert.Equal(t, uint64(834_000), q.Volume)
+	assert.Equal(t, uint64(780), q.Transactions)
+	assert.Equal(t, uint64(69_098_000), q.Value)
+	assert.Equal(t, 84.00, q.High)
+	assert.Equal(t, 82.20, q.Low)
+	assert.Equal(t, 83.20, q.Open)
+	assert.Equal(t, 82.30, q.Close)
+
+	mockHttpClient.AssertNumberOfCalls(t, "Do", 1)
+}
