@@ -16,7 +16,7 @@ import (
 func TestClient_FetchDayQuotes(t *testing.T) {
 	date := time.Date(2021, 3, 24, 0, 0, 0, 0, time.UTC)
 
-	mockResponse := tkttest.NewResponseFromFile("./testdata/quotes-tw-20210324.json.gz", 200)
+	mockResponse := tkttest.NewJsonResponseFromGzipFile("./testdata/quotes-tw-20210324.json.gz", 200)
 	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
@@ -62,7 +62,7 @@ func TestClient_FetchDailyQuotes(t *testing.T) {
 	code := "2330"
 	date := time.Date(2021, 2, 1, 0, 0, 0, 0, time.UTC)
 
-	mockResponse := tkttest.NewResponseFromFile("./testdata/quotes-tw-202102-2330.json.gz", 200)
+	mockResponse := tkttest.NewJsonResponseFromGzipFile("./testdata/quotes-tw-202102-2330.json.gz", 200)
 	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
@@ -97,7 +97,7 @@ func TestClient_FetchMonthlyQuotes(t *testing.T) {
 	code := "2454"
 	year := 2020
 
-	mockResponse := tkttest.NewResponseFromFile("./testdata/quotes-tw-2020-2454.json.gz", 200)
+	mockResponse := tkttest.NewJsonResponseFromGzipFile("./testdata/quotes-tw-2020-2454.json.gz", 200)
 	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
@@ -128,7 +128,7 @@ func TestClient_FetchMonthlyQuotes(t *testing.T) {
 func TestClient_FetchYearlyQuotes(t *testing.T) {
 	code := "0050"
 
-	mockResponse := tkttest.NewResponseFromFile("./testdata/quotes-tw-0050.json.gz", 200)
+	mockResponse := tkttest.NewJsonResponseFromGzipFile("./testdata/quotes-tw-0050.json.gz", 200)
 	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		u := req.URL
@@ -179,7 +179,7 @@ func TestClient_FetchDayQuotesTooFrequently(t *testing.T) {
 
 	mockResponseHeader := http.Header{}
 	mockResponseHeader.Set("content-type", "text/html; charset=utf-8")
-	mockResponse := tkttest.NewResponseFromFile("./testdata/quotes-tw-banned.html.gz", 200)
+	mockResponse := tkttest.NewJsonResponseFromGzipFile("./testdata/quotes-tw-banned.html.gz", 200)
 	mockResponse.Header = mockResponseHeader
 	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {

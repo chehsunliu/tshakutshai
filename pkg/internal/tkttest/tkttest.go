@@ -25,10 +25,7 @@ func (m *MockHttpClient) Do(req *http.Request) (*http.Response, error) {
 	}
 }
 
-func NewResponseFromFile(filepath string, statusCode int) *http.Response {
-	header := http.Header{}
-	header.Set("content-type", "application/json; charset=utf-8")
-
+func newResponseFromGzipFile(filepath string, statusCode int, header http.Header) *http.Response {
 	f, err := os.Open(filepath)
 	if err != nil {
 		panic(fmt.Errorf("failed to open %s: %w", filepath, err))
@@ -44,6 +41,16 @@ func NewResponseFromFile(filepath string, statusCode int) *http.Response {
 		StatusCode: statusCode,
 		Header:     header,
 	}
+}
+
+func NewJsonResponseFromGzipFile(filepath string, statusCode int) *http.Response {
+	header := http.Header{}
+	header.Set("content-type", "application/json; charset=utf-8")
+	return newResponseFromGzipFile(filepath, statusCode, header)
+}
+
+func NewResponseFromGzipFile(filepath string, statusCode int) *http.Response {
+	return newResponseFromGzipFile(filepath, statusCode, http.Header{})
 }
 
 func NewResponseFromString(content string, statusCode int) *http.Response {
