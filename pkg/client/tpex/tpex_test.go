@@ -101,8 +101,6 @@ func TestClient_FetchMonthlyQuotes(t *testing.T) {
 	assert.Equal(t, uint64(564_646_000), q.Value)
 	assert.Equal(t, 96.40, q.High)
 	assert.Equal(t, 88.70, q.Low)
-	assert.Equal(t, 0.00, q.Open)
-	assert.Equal(t, 0.00, q.Close)
 }
 
 func TestClient_FetchYearlyQuotes(t *testing.T) {
@@ -117,5 +115,17 @@ func TestClient_FetchYearlyQuotes(t *testing.T) {
 	client := &tpex.Client{HttpClient: mockHttpClient}
 	qs, err := client.FetchYearlyQuotes(code)
 	assert.Nilf(t, err, "%s", err)
-	assert.Equal(t, 12, len(qs))
+	assert.Equal(t, 17, len(qs))
+
+	q := qs[16]
+	assert.Equal(t, code, q.Code)
+	assert.Equal(t, "", q.Name)
+	assert.Equal(t, "20050101", q.Date.Format("20060102"))
+	assert.Equal(t, uint64(296_356_000), q.Volume)
+	assert.Equal(t, uint64(147_000), q.Transactions)
+	assert.Equal(t, uint64(14_075_258_000), q.Value)
+	assert.Equal(t, 59.70, q.High)
+	assert.Equal(t, 28.20, q.Low)
+	assert.Equal(t, time.Date(2005, time.September, 16, 0, 0, 0, 0, time.UTC), q.DateOfHigh)
+	assert.Equal(t, time.Date(2005, time.January, 24, 0, 0, 0, 0, time.UTC), q.DateOfLow)
 }

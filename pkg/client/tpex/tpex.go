@@ -7,12 +7,15 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	tkthttp "github.com/chehsunliu/tshakutshai/pkg/http"
 )
+
+var invalidCsvChars = regexp.MustCompile(`[a-zA-Z]+`)
 
 type Quote struct {
 	Code         string
@@ -25,6 +28,8 @@ type Quote struct {
 	Low          float64
 	Open         float64
 	Close        float64
+	DateOfHigh   time.Time
+	DateOfLow    time.Time
 }
 
 type Client struct {
@@ -254,14 +259,105 @@ func (c *Client) FetchMonthlyQuotes(code string, year int) ([]Quote, error) {
 	return qs, nil
 }
 
+func filterOutInvalidLines(text string) string {
+	rawTextSplit := strings.Split(text, "\n")
+	dataLines := make([]string, 0)
+
+	isInAddingDataLineStage := false
+	for _, line := range rawTextSplit {
+		isMatched := invalidCsvChars.MatchString(line)
+
+		if !isInAddingDataLineStage {
+			if isMatched {
+				continue
+			} else {
+				isInAddingDataLineStage = true
+			}
+		} else if isMatched {
+			break
+		}
+
+		dataLines = append(dataLines, line)
+	}
+
+	return strings.Join(dataLines, "\n")
+}
+
+func convertRawYearlyQuote(code string, raw []string) (Quote, error) {
+	year, err := strconv.Atoi(raw[0])
+	if err != nil {
+		return Quote{}, fmt.Errorf("failed to parse year %s: %s", raw[0], err)
+	}
+
+	volume, err := strconv.ParseUint(strings.ReplaceAll(raw[1], ",", ""), 10, 64)
+	if err != nil {
+		return Quote{}, fmt.Errorf("failed to parse volume %s: %s", raw[1], err)
+	}
+
+	value, err := strconv.ParseUint(strings.ReplaceAll(raw[2], ",", ""), 10, 64)
+	if err != nil {
+		return Quote{}, fmt.Errorf("failed to parse value %s: %s", raw[2], err)
+	}
+
+	transactions, err := strconv.ParseUint(strings.ReplaceAll(raw[3], ",", ""), 10, 64)
+	if err != nil {
+		return Quote{}, fmt.Errorf("failed to parse transactions %s: %s", raw[3], err)
+	}
+
+	high, err := strconv.ParseFloat(raw[4], 64)
+	if err != nil {
+		return Quote{}, fmt.Errorf("failed to parse high %s: %s", raw[4], err)
+	}
+
+	dateOfHigh, err := time.Parse("01/02", raw[5])
+	if err != nil {
+		return Quote{}, fmt.Errorf("failed to parse date of high %s: %s", raw[5], err)
+	}
+
+	low, err := strconv.ParseFloat(raw[6], 64)
+	if err != nil {
+		return Quote{}, fmt.Errorf("failed to parse low %s: %s", raw[6], err)
+	}
+
+	dateOfLow, err := time.Parse("01/02", raw[7])
+	if err != nil {
+		return Quote{}, fmt.Errorf("failed to parse date of higlowh %s: %s", raw[7], err)
+	}
+
+	return Quote{
+		Code:         code,
+		Date:         time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC),
+		Volume:       volume * 1000,
+		Transactions: transactions * 1000,
+		Value:        value * 1000,
+		High:         high,
+		Low:          low,
+		DateOfHigh:   time.Date(year, dateOfHigh.Month(), dateOfHigh.Day(), 0, 0, 0, 0, time.UTC),
+		DateOfLow:    time.Date(year, dateOfLow.Month(), dateOfLow.Day(), 0, 0, 0, 0, time.UTC),
+	}, nil
+}
+
 func (c *Client) FetchYearlyQuotes(code string) ([]Quote, error) {
 	rawText, err := c.fetchYearlyQuotes(code)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println(rawText)
+	reader := csv.NewReader(strings.NewReader(filterOutInvalidLines(rawText)))
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
 
 	qs := make([]Quote, 0)
+
+	for _, record := range records {
+		q, err := convertRawYearlyQuote(code, record)
+		if err != nil {
+			return nil, err
+		}
+		qs = append(qs, q)
+	}
+
 	return qs, nil
 }
