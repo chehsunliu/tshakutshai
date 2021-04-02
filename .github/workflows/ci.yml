@@ -49,7 +49,7 @@ jobs:
         run: go test -v -race ./integration/...
 
   lint:
-    runs-on: ubunut-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
