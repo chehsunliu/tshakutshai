@@ -47,3 +47,13 @@ jobs:
 
       - name: Perform integration tests
         run: go test -v -race ./integration/...
+
+  lint:
+    runs-on: ubunut-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: golangci-lint
+        users: golangci/golangci-lint-action@v2
+        with:
+          version: latest
