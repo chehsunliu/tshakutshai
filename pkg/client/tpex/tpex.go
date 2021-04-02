@@ -182,6 +182,30 @@ func (c *Client) FetchDailyQuotes(code string, year int, month time.Month) ([]Qu
 	return qs, nil
 }
 
+func filterOutInvalidLines(text string) string {
+	rawTextSplit := strings.Split(text, "\n")
+	dataLines := make([]string, 0)
+
+	isInAddingDataLineStage := false
+	for _, line := range rawTextSplit {
+		isMatched := invalidCsvChars.MatchString(line)
+
+		if !isInAddingDataLineStage {
+			if isMatched {
+				continue
+			} else {
+				isInAddingDataLineStage = true
+			}
+		} else if isMatched {
+			break
+		}
+
+		dataLines = append(dataLines, line)
+	}
+
+	return strings.Join(dataLines, "\n")
+}
+
 func convertRawMonthlyQuote(code string, raw []string) (Quote, error) {
 	year, err := strconv.Atoi(raw[0])
 	if err != nil {
@@ -235,12 +259,7 @@ func (c *Client) FetchMonthlyQuotes(code string, year int) ([]Quote, error) {
 		return nil, err
 	}
 
-	rawTextSplit := strings.SplitN(rawText, "\n", 6)
-	if len(rawTextSplit) != 6 {
-		return nil, fmt.Errorf("uncognized format: %s", rawText)
-	}
-
-	reader := csv.NewReader(strings.NewReader(rawTextSplit[5]))
+	reader := csv.NewReader(strings.NewReader(filterOutInvalidLines(rawText)))
 	records, err := reader.ReadAll()
 	if err != nil {
 		return nil, err
@@ -257,30 +276,6 @@ func (c *Client) FetchMonthlyQuotes(code string, year int) ([]Quote, error) {
 	}
 
 	return qs, nil
-}
-
-func filterOutInvalidLines(text string) string {
-	rawTextSplit := strings.Split(text, "\n")
-	dataLines := make([]string, 0)
-
-	isInAddingDataLineStage := false
-	for _, line := range rawTextSplit {
-		isMatched := invalidCsvChars.MatchString(line)
-
-		if !isInAddingDataLineStage {
-			if isMatched {
-				continue
-			} else {
-				isInAddingDataLineStage = true
-			}
-		} else if isMatched {
-			break
-		}
-
-		dataLines = append(dataLines, line)
-	}
-
-	return strings.Join(dataLines, "\n")
 }
 
 func convertRawYearlyQuote(code string, raw []string) (Quote, error) {

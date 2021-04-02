@@ -37,13 +37,16 @@ func TestThrottledClient_Do(t *testing.T) {
 	wg.Add(4)
 	for i := 0; i < 4; i++ {
 		go func() {
-			client.Do(&http.Request{})
+			_, err := client.Do(&http.Request{})
+			if err != nil {
+				panic(err)
+			}
 			wg.Done()
 		}()
 	}
 	wg.Wait()
 
-	elapsed := time.Now().Sub(t0)
+	elapsed := time.Since(t0)
 	assert.True(t, elapsed >= minInterval*(4-1))
 	mockHttpClient.AssertNumberOfCalls(t, "Do", 4)
 }

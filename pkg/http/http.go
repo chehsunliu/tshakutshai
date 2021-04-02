@@ -29,7 +29,7 @@ func (c *ThrottledClient) Do(req *http.Request) (*http.Response, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	elapsed := time.Now().Sub(c.last)
+	elapsed := time.Since(c.last)
 	if elapsed < c.minInterval {
 		time.Sleep(c.minInterval - elapsed)
 	}
