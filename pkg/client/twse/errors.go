@@ -2,14 +2,14 @@ package twse
 
 import "fmt"
 
-// NoDataError is an error returned by Fetch functions when query conditions matches nothing. It can be
+// noDataError is an error returned by Fetch functions when query conditions matches nothing. It can be
 // no such stock symbol, dates before the stock's IPO, or the TWSE server did not have any data of all
 // the stocks before the query date.
-type NoDataError struct {
+type noDataError struct {
 	Message string
 }
 
-func (e *NoDataError) Error() string {
+func (e *noDataError) Error() string {
 	return fmt.Sprintf("NoData: %s", e.Message)
 }
 

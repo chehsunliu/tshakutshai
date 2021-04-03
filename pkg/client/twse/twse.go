@@ -118,7 +118,7 @@ func (c *Client) fetch(p string, rawQuery url.Values) (map[string]json.RawMessag
 	}
 
 	if stat := retrieveStat(rawData); stat != "OK" {
-		return nil, &NoDataError{fmt.Sprintf("expected stat 'OK' but got '%s'", stat)}
+		return nil, &noDataError{fmt.Sprintf("expected stat 'OK' but got '%s'", stat)}
 	}
 
 	return rawData, nil
@@ -248,6 +248,10 @@ func convertRawYearlyQuote(rawYearlyQuote map[string]interface{}, code string) *
 func (c *Client) FetchDayQuotes(date time.Time) (map[string]Quote, error) {
 	rawData, err := c.fetchDayQuotes(date)
 	if err != nil {
+		var e *noDataError
+		if errors.As(err, &e) {
+			return map[string]Quote{}, nil
+		}
 		return nil, err
 	}
 
@@ -266,6 +270,10 @@ func (c *Client) FetchDayQuotes(date time.Time) (map[string]Quote, error) {
 func (c *Client) FetchDailyQuotes(code string, year int, month time.Month) ([]Quote, error) {
 	rawData, err := c.fetchDailyQuotes(code, year, month)
 	if err != nil {
+		var e *noDataError
+		if errors.As(err, &e) {
+			return []Quote{}, nil
+		}
 		return nil, err
 	}
 
@@ -283,6 +291,10 @@ func (c *Client) FetchDailyQuotes(code string, year int, month time.Month) ([]Qu
 func (c *Client) FetchMonthlyQuotes(code string, year int) ([]Quote, error) {
 	rawData, err := c.fetchMonthlyQuotes(code, year)
 	if err != nil {
+		var e *noDataError
+		if errors.As(err, &e) {
+			return []Quote{}, nil
+		}
 		return nil, err
 	}
 
@@ -300,6 +312,10 @@ func (c *Client) FetchMonthlyQuotes(code string, year int) ([]Quote, error) {
 func (c *Client) FetchYearlyQuotes(code string) ([]Quote, error) {
 	rawData, err := c.fetchYearlyQuotes(code)
 	if err != nil {
+		var e *noDataError
+		if errors.As(err, &e) {
+			return []Quote{}, nil
+		}
 		return nil, err
 	}
 

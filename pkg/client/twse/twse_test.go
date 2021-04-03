@@ -167,11 +167,46 @@ func TestClient_FetchDayQuotesOnWeekend(t *testing.T) {
 	})).Return(mockResponse, nil)
 
 	client := &twse.Client{HttpClient: mockHttpClient}
-	_, err := client.FetchDayQuotes(date)
+	qs, err := client.FetchDayQuotes(date)
+	assert.Nilf(t, err, "%v", err)
+	assert.Equal(t, 0, len(qs))
+}
 
-	var twseErr *twse.NoDataError
-	assert.NotNil(t, err)
-	assert.ErrorAs(t, err, &twseErr)
+func TestClient_FetchDailyQuotesInFuture(t *testing.T) {
+	date := time.Now()
+
+	mockResponse := tkttest.NewResponseFromString(`{"stat":"很抱歉，沒有符合條件的資料!"}`, 200)
+	mockHttpClient := &tkttest.MockHttpClient{}
+	mockHttpClient.On("Do", mock.Anything).Return(mockResponse, nil)
+
+	client := &twse.Client{HttpClient: mockHttpClient}
+	qs, err := client.FetchDailyQuotes("2330", date.Year()+1, date.Month())
+	assert.Nilf(t, err, "%v", err)
+	assert.Equal(t, 0, len(qs))
+}
+
+func TestClient_FetchMonthlyQuotesInFuture(t *testing.T) {
+	date := time.Now()
+
+	mockResponse := tkttest.NewResponseFromString(`{"stat":"很抱歉，沒有符合條件的資料!"}`, 200)
+	mockHttpClient := &tkttest.MockHttpClient{}
+	mockHttpClient.On("Do", mock.Anything).Return(mockResponse, nil)
+
+	client := &twse.Client{HttpClient: mockHttpClient}
+	qs, err := client.FetchMonthlyQuotes("2330", date.Year()+1)
+	assert.Nilf(t, err, "%v", err)
+	assert.Equal(t, 0, len(qs))
+}
+
+func TestClient_FetchYearlyQuotesOfNonExistingStock(t *testing.T) {
+	mockResponse := tkttest.NewResponseFromString(`{"stat":"很抱歉，沒有符合條件的資料!"}`, 200)
+	mockHttpClient := &tkttest.MockHttpClient{}
+	mockHttpClient.On("Do", mock.Anything).Return(mockResponse, nil)
+
+	client := &twse.Client{HttpClient: mockHttpClient}
+	qs, err := client.FetchYearlyQuotes("11122233")
+	assert.Nilf(t, err, "%v", err)
+	assert.Equal(t, 0, len(qs))
 }
 
 func TestClient_FetchDayQuotesTooFrequently(t *testing.T) {
