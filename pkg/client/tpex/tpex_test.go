@@ -129,3 +129,57 @@ func TestClient_FetchYearlyQuotes(t *testing.T) {
 	assert.Equal(t, time.Date(2005, time.September, 16, 0, 0, 0, 0, time.UTC), q.DateOfHigh)
 	assert.Equal(t, time.Date(2005, time.January, 24, 0, 0, 0, 0, time.UTC), q.DateOfLow)
 }
+
+func TestClient_FetchDayQuotesInPast(t *testing.T) {
+	date := time.Now().Add(time.Second * 54321)
+
+	mockResponse := tkttest.NewJsonResponseFromGzipFile("./testdata/quotes-tw-19910330-no-data.json.gz", 200)
+	mockHttpClient := &tkttest.MockHttpClient{}
+	mockHttpClient.On("Do", mock.Anything).Return(mockResponse, nil)
+
+	client := &tpex.Client{HttpClient: mockHttpClient}
+	qs, err := client.FetchDayQuotes(date)
+	assert.Nilf(t, err, "%s", err)
+	assert.Equal(t, 0, len(qs))
+}
+
+func TestClient_FetchDailyQuotesInFuture(t *testing.T) {
+	code := "8044"
+	date := time.Now().Add(time.Second * 54321)
+
+	mockResponse := tkttest.NewJsonResponseFromGzipFile("./testdata/quotes-tw-199103-8044-no-data.json.gz", 200)
+	mockHttpClient := &tkttest.MockHttpClient{}
+	mockHttpClient.On("Do", mock.Anything).Return(mockResponse, nil)
+
+	client := &tpex.Client{HttpClient: mockHttpClient}
+	qs, err := client.FetchDailyQuotes(code, date.Year(), date.Month())
+	assert.Nilf(t, err, "%+v", err)
+	assert.Equal(t, 0, len(qs))
+}
+
+func TestClient_FetchMonthlyQuotesInFuture(t *testing.T) {
+	code := "8044"
+	year := time.Now().Year() + 1
+
+	mockResponse := tkttest.NewResponseFromGzipFile("./testdata/quotes-en-2022-8044-no-data.csv.gz", 200)
+	mockHttpClient := &tkttest.MockHttpClient{}
+	mockHttpClient.On("Do", mock.Anything).Return(mockResponse, nil)
+
+	client := &tpex.Client{HttpClient: mockHttpClient}
+	qs, err := client.FetchMonthlyQuotes(code, year)
+	assert.Nilf(t, err, "%+v", err)
+	assert.Equal(t, 0, len(qs))
+}
+
+func TestClient_FetchYearlyQuotesWithNonExistingStock(t *testing.T) {
+	code := "28044"
+
+	mockResponse := tkttest.NewResponseFromGzipFile("./testdata/quotes-en-28044-no-data.csv.gz", 200)
+	mockHttpClient := &tkttest.MockHttpClient{}
+	mockHttpClient.On("Do", mock.Anything).Return(mockResponse, nil)
+
+	client := &tpex.Client{HttpClient: mockHttpClient}
+	qs, err := client.FetchYearlyQuotes(code)
+	assert.Nilf(t, err, "%s", err)
+	assert.Equal(t, 0, len(qs))
+}
