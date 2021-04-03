@@ -9,7 +9,7 @@ import (
 	"github.com/chehsunliu/tshakutshai/pkg/client/twse"
 )
 
-var client = twse.NewClient(time.Second * 3)
+var client = twse.NewClient(time.Second * 2)
 
 func TestClient_FetchDayQuotes(t *testing.T) {
 	date := time.Date(2021, time.March, 29, 0, 0, 0, 0, time.UTC)
