@@ -81,7 +81,7 @@ func TestClient_FetchMonthlyQuotes(t *testing.T) {
 	code := "8044"
 	year := 2020
 
-	mockResponse := tkttest.NewResponseFromGzipFile("./testdata/quotes-tw-2020-8044.csv.gz", 200)
+	mockResponse := tkttest.NewResponseFromGzipFile("./testdata/quotes-en-2020-8044.csv.gz", 200)
 	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		return req.URL.Path == "/web/stock/statistics/monthly/download_st44.php"
@@ -106,7 +106,7 @@ func TestClient_FetchMonthlyQuotes(t *testing.T) {
 func TestClient_FetchYearlyQuotes(t *testing.T) {
 	code := "8044"
 
-	mockResponse := tkttest.NewResponseFromGzipFile("./testdata/quotes-tw-8044.csv.gz", 200)
+	mockResponse := tkttest.NewResponseFromGzipFile("./testdata/quotes-en-8044.csv.gz", 200)
 	mockHttpClient := &tkttest.MockHttpClient{}
 	mockHttpClient.On("Do", mock.MatchedBy(func(req *http.Request) bool {
 		return req.URL.Path == "/web/stock/statistics/monthly/download_st42.php"
