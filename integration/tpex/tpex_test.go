@@ -9,7 +9,7 @@ import (
 	"github.com/chehsunliu/tshakutshai/pkg/client/tpex"
 )
 
-var client = tpex.NewClient(time.Second * 3)
+var client = tpex.NewClient(time.Millisecond)
 
 func TestClient_FetchDayQuotes(t *testing.T) {
 	date := time.Date(2021, time.March, 30, 0, 0, 0, 0, time.UTC)

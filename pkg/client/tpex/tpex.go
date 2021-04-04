@@ -206,40 +206,40 @@ func filterOutInvalidLines(text string) string {
 	return strings.Join(dataLines, "\n")
 }
 
-func convertRawMonthlyQuote(code string, raw []string) (Quote, error) {
+func convertRawMonthlyQuote(code string, raw []string) Quote {
 	year, err := strconv.Atoi(raw[0])
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse year %s: %s", raw[0], err)
+		panic(fmt.Sprintf("failed to parse year %s: %s", raw[0], err))
 	}
 
 	month, err := strconv.Atoi(raw[1])
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse year %s: %s", raw[1], err)
+		panic(fmt.Sprintf("failed to parse year %s: %s", raw[1], err))
 	}
 
 	high, err := strconv.ParseFloat(raw[2], 64)
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse high %s: %s", raw[2], err)
+		panic(fmt.Sprintf("failed to parse high %s: %s", raw[2], err))
 	}
 
 	low, err := strconv.ParseFloat(raw[3], 64)
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse low %s: %s", raw[3], err)
+		panic(fmt.Sprintf("failed to parse low %s: %s", raw[3], err))
 	}
 
 	transactions, err := strconv.ParseUint(strings.ReplaceAll(raw[5], ",", ""), 10, 64)
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse transactions %s: %s", raw[5], err)
+		panic(fmt.Sprintf("failed to parse transactions %s: %s", raw[5], err))
 	}
 
 	value, err := strconv.ParseUint(strings.ReplaceAll(raw[6], ",", ""), 10, 64)
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse value %s: %s", raw[6], err)
+		panic(fmt.Sprintf("failed to parse value %s: %s", raw[6], err))
 	}
 
 	volume, err := strconv.ParseUint(strings.ReplaceAll(raw[7], ",", ""), 10, 64)
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse volume %s: %s", raw[7], err)
+		panic(fmt.Sprintf("failed to parse volume %s: %s", raw[7], err))
 	}
 
 	return Quote{
@@ -250,7 +250,7 @@ func convertRawMonthlyQuote(code string, raw []string) (Quote, error) {
 		Value:        value * 1000,
 		High:         high,
 		Low:          low,
-	}, nil
+	}
 }
 
 func (c *Client) FetchMonthlyQuotes(code string, year int) ([]Quote, error) {
@@ -268,55 +268,51 @@ func (c *Client) FetchMonthlyQuotes(code string, year int) ([]Quote, error) {
 	qs := make([]Quote, 0)
 
 	for _, record := range records {
-		q, err := convertRawMonthlyQuote(code, record)
-		if err != nil {
-			return nil, err
-		}
-		qs = append(qs, q)
+		qs = append(qs, convertRawMonthlyQuote(code, record))
 	}
 
 	return qs, nil
 }
 
-func convertRawYearlyQuote(code string, raw []string) (Quote, error) {
+func convertRawYearlyQuote(code string, raw []string) Quote {
 	year, err := strconv.Atoi(raw[0])
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse year %s: %s", raw[0], err)
+		panic(fmt.Sprintf("failed to parse year %s: %s", raw[0], err))
 	}
 
 	volume, err := strconv.ParseUint(strings.ReplaceAll(raw[1], ",", ""), 10, 64)
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse volume %s: %s", raw[1], err)
+		panic(fmt.Sprintf("failed to parse volume %s: %s", raw[1], err))
 	}
 
 	value, err := strconv.ParseUint(strings.ReplaceAll(raw[2], ",", ""), 10, 64)
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse value %s: %s", raw[2], err)
+		panic(fmt.Sprintf("failed to parse value %s: %s", raw[2], err))
 	}
 
 	transactions, err := strconv.ParseUint(strings.ReplaceAll(raw[3], ",", ""), 10, 64)
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse transactions %s: %s", raw[3], err)
+		panic(fmt.Sprintf("failed to parse transactions %s: %s", raw[3], err))
 	}
 
 	high, err := strconv.ParseFloat(raw[4], 64)
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse high %s: %s", raw[4], err)
+		panic(fmt.Sprintf("failed to parse high %s: %s", raw[4], err))
 	}
 
 	dateOfHigh, err := time.Parse("01/02", raw[5])
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse date of high %s: %s", raw[5], err)
+		panic(fmt.Sprintf("failed to parse date of high %s: %s", raw[5], err))
 	}
 
 	low, err := strconv.ParseFloat(raw[6], 64)
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse low %s: %s", raw[6], err)
+		panic(fmt.Sprintf("failed to parse low %s: %s", raw[6], err))
 	}
 
 	dateOfLow, err := time.Parse("01/02", raw[7])
 	if err != nil {
-		return Quote{}, fmt.Errorf("failed to parse date of higlowh %s: %s", raw[7], err)
+		panic(fmt.Sprintf("failed to parse date of higlowh %s: %s", raw[7], err))
 	}
 
 	return Quote{
@@ -329,7 +325,7 @@ func convertRawYearlyQuote(code string, raw []string) (Quote, error) {
 		Low:          low,
 		DateOfHigh:   time.Date(year, dateOfHigh.Month(), dateOfHigh.Day(), 0, 0, 0, 0, time.UTC),
 		DateOfLow:    time.Date(year, dateOfLow.Month(), dateOfLow.Day(), 0, 0, 0, 0, time.UTC),
-	}, nil
+	}
 }
 
 func (c *Client) FetchYearlyQuotes(code string) ([]Quote, error) {
@@ -347,11 +343,7 @@ func (c *Client) FetchYearlyQuotes(code string) ([]Quote, error) {
 	qs := make([]Quote, 0)
 
 	for _, record := range records {
-		q, err := convertRawYearlyQuote(code, record)
-		if err != nil {
-			return nil, err
-		}
-		qs = append(qs, q)
+		qs = append(qs, convertRawYearlyQuote(code, record))
 	}
 
 	return qs, nil
